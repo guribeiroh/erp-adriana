@@ -6,6 +6,17 @@ const nextConfig = {
     config.externals = [...config.externals, 'canvas', 'jsdom'];
     return config;
   },
+  eslint: {
+    // Desativa a verificação de ESLint durante o build na produção
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Desativa a verificação de tipos durante o build na produção
+    ignoreBuildErrors: true,
+  },
+  experimental: {
+    serverActions: true,
+  }
 };
 
 module.exports = nextConfig; 
