@@ -15,7 +15,37 @@ export default function LoginPage() {
 
   // Log para debug
   useEffect(() => {
-    console.log('Página de login carregada');
+    console.log('============ PÁGINA DE LOGIN CARREGADA ============');
+    document.title = 'Login - ERP Livraria';
+    
+    // Adicionar mensagem visível na página
+    const messageElem = document.createElement('div');
+    messageElem.style.position = 'fixed';
+    messageElem.style.bottom = '10px';
+    messageElem.style.right = '10px';
+    messageElem.style.background = 'rgba(0,0,0,0.7)';
+    messageElem.style.color = 'white';
+    messageElem.style.padding = '5px 10px';
+    messageElem.style.borderRadius = '5px';
+    messageElem.style.zIndex = '9999';
+    messageElem.style.fontSize = '12px';
+    messageElem.textContent = 'Página de login carregada - v.1.0.2';
+    document.body.appendChild(messageElem);
+    
+    // Verificar estado
+    try {
+      const state = debugSupabaseState();
+      console.log('Estado Supabase:', state);
+    } catch (e) {
+      console.error('Erro ao verificar estado:', e);
+    }
+    
+    // Limpar ao desmontar
+    return () => {
+      if (document.body.contains(messageElem)) {
+        document.body.removeChild(messageElem);
+      }
+    };
   }, []);
 
   const handleTestLogin = () => {
@@ -91,6 +121,17 @@ export default function LoginPage() {
     } catch (error) {
       console.error('Erro ao depurar:', error);
       alert('Erro ao depurar. Verifique o console.');
+    }
+  };
+
+  // Função para ir diretamente para o dashboard sem autenticação
+  const handleDirectAccess = () => {
+    try {
+      console.log('Acessando dashboard diretamente sem autenticação...');
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Erro ao acessar diretamente:', error);
+      alert('Erro ao acessar diretamente: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -210,6 +251,15 @@ export default function LoginPage() {
             >
               <TestTube className="mr-2 h-4 w-4" />
               Login de Teste
+            </button>
+            
+            {/* Botão de Acesso Direto */}
+            <button
+              type="button"
+              onClick={handleDirectAccess}
+              className="flex w-full items-center justify-center rounded-lg border border-orange-300 bg-orange-50 py-3 text-base font-medium text-orange-600 shadow-sm transition-colors hover:bg-orange-100"
+            >
+              Acesso Direto ao Dashboard
             </button>
             
             {/* Botão de Debug */}
