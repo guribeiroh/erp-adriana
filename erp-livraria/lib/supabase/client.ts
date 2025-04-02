@@ -202,4 +202,37 @@ export async function getAuthStatus() {
     session: data.session,
     error: null 
   };
+}
+
+/**
+ * Limpa dados locais armazenados pela aplicação
+ * Usado principalmente no logout para garantir que nenhum dado persista indevidamente
+ */
+export function clearLocalData() {
+  try {
+    console.log('Limpando dados locais armazenados');
+    
+    // Limpar o flag de dados reais
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('useRealData');
+      localStorage.removeItem('lastSession');
+      localStorage.removeItem('userPreferences');
+      
+      // Limpar outros dados que possam ter sido armazenados
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('erp_') || key.startsWith('livraria_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // Remover os itens em uma lista separada para evitar problemas com a iteração
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+    }
+    
+    console.log('Dados locais limpos com sucesso');
+  } catch (error) {
+    console.error('Erro ao limpar dados locais:', error);
+  }
 } 

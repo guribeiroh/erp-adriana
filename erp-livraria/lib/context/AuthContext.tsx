@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, getAuthStatus, forceRealData } from '../supabase/client';
+import { supabase, getAuthStatus, forceRealData, clearLocalData } from '../supabase/client';
 import { useRouter } from 'next/navigation';
 
 // Tipos para o contexto de autenticação
@@ -126,11 +126,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setIsLoading(true);
-      await supabase.auth.signOut();
+      console.log('Iniciando processo de logout...');
+      
+      // Limpar dados locais armazenados
+      clearLocalData();
+      
+      // Fazer logout no Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Erro durante logout do Supabase:', error);
+        throw error;
+      }
+      
+      console.log('Logout do Supabase concluído com sucesso');
+      
+      // Limpar o estado local
       setUser(null);
       setSession(null);
+      
+      // Redirecionar para o login é feito pelo listener de autenticação
+      return { success: true };
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido ao fazer logout' };
     } finally {
       setIsLoading(false);
     }

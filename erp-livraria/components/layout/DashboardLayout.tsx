@@ -1,7 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/context/AuthContext';
 import { 
   BarChart3,
   Users, 
@@ -15,7 +17,9 @@ import {
   ChevronDown,
   Bell,
   Search,
-  Package
+  Package,
+  User,
+  Settings
 } from 'lucide-react';
 
 // Lista de links da navegação
@@ -36,6 +40,35 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, title = "Dashboard" }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+  
+  // Fechar menu quando clicar fora dele
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [profileMenuRef]);
+  
+  // Função para lidar com o logout
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/logout');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      alert('Erro ao fazer logout. Tente novamente.');
+    }
+  };
 
   return (
     <div className="flex h-screen bg-neutral-50">
@@ -113,14 +146,54 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
             </button>
 
             {/* Perfil do usuário */}
-            <div className="relative">
-              <button className="flex items-center gap-2 rounded-full border border-neutral-300 p-1 pr-3 text-sm font-medium hover:bg-neutral-100">
+            <div className="relative" ref={profileMenuRef}>
+              <button 
+                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                className="flex items-center gap-2 rounded-full border border-neutral-300 p-1 pr-3 text-sm font-medium hover:bg-neutral-100"
+              >
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-100 text-primary-800">
-                  U
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <span className="hidden md:block">Usuário</span>
+                <span className="hidden md:block">
+                  {user?.email?.split('@')[0] || 'Usuário'}
+                </span>
                 <ChevronDown className="h-4 w-4 text-neutral-400" />
               </button>
+              
+              {/* Menu dropdown */}
+              {profileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-md border border-neutral-200 bg-white shadow-lg z-50">
+                  <div className="py-1">
+                    <div className="px-4 py-2 text-sm text-neutral-700 border-b border-neutral-200">
+                      <div className="font-medium">{user?.email || 'Usuário'}</div>
+                      <div className="text-xs text-neutral-500">Logado</div>
+                    </div>
+                    <Link
+                      href="/dashboard/perfil"
+                      className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                      onClick={() => setProfileMenuOpen(false)}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Perfil
+                    </Link>
+                    <Link
+                      href="/dashboard/configuracoes"
+                      className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                      onClick={() => setProfileMenuOpen(false)}
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Configurações
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair do sistema
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
