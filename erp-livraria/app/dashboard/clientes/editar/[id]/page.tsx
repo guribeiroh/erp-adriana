@@ -595,7 +595,159 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                 </div>
               </div>
               
-              {/* Resto do formulário aqui... */}
+              {/* Endereço */}
+              <div>
+                <h2 className="mb-4 text-lg font-medium text-neutral-900">Endereço</h2>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {/* Endereço */}
+                  <div className="md:col-span-2">
+                    <label htmlFor="endereco" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                      Endereço <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <MapPin className="h-4 w-4 text-neutral-400" />
+                      </div>
+                      <input
+                        type="text"
+                        id="endereco"
+                        name="endereco"
+                        value={formData.endereco}
+                        onChange={handleChange}
+                        placeholder="Rua, número, bairro"
+                        className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                          errors.endereco ? 'border-red-300 bg-red-50' : 'border-neutral-300 bg-white'
+                        }`}
+                      />
+                    </div>
+                    {errors.endereco && (
+                      <p className="mt-1.5 text-sm text-red-600">{errors.endereco}</p>
+                    )}
+                  </div>
+                  
+                  {/* Complemento */}
+                  <div>
+                    <label htmlFor="complemento" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                      Complemento
+                    </label>
+                    <input
+                      type="text"
+                      id="complemento"
+                      name="complemento"
+                      value={formData.complemento}
+                      onChange={handleChange}
+                      placeholder="Apartamento, bloco, etc."
+                      className="w-full rounded-lg border border-neutral-300 py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    />
+                  </div>
+                  
+                  {/* CEP */}
+                  <div>
+                    <label htmlFor="cep" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                      CEP <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="cep"
+                      name="cep"
+                      value={formData.cep}
+                      onChange={handleChange}
+                      placeholder="00000-000"
+                      className={`w-full rounded-lg border py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                        errors.cep ? 'border-red-300 bg-red-50' : 'border-neutral-300 bg-white'
+                      }`}
+                    />
+                    {errors.cep && (
+                      <p className="mt-1.5 text-sm text-red-600">{errors.cep}</p>
+                    )}
+                  </div>
+                  
+                  {/* Cidade */}
+                  <div>
+                    <label htmlFor="cidade" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                      Cidade <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="cidade"
+                      name="cidade"
+                      value={formData.cidade}
+                      onChange={handleChange}
+                      placeholder="Nome da cidade"
+                      className={`w-full rounded-lg border py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                        errors.cidade ? 'border-red-300 bg-red-50' : 'border-neutral-300 bg-white'
+                      }`}
+                    />
+                    {errors.cidade && (
+                      <p className="mt-1.5 text-sm text-red-600">{errors.cidade}</p>
+                    )}
+                  </div>
+                  
+                  {/* Estado */}
+                  <div>
+                    <label htmlFor="estado" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                      Estado <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="estado"
+                      name="estado"
+                      value={formData.estado}
+                      onChange={handleChange}
+                      className={`w-full rounded-lg border py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                        errors.estado ? 'border-red-300 bg-red-50' : 'border-neutral-300 bg-white'
+                      }`}
+                    >
+                      <option value="">Selecione um estado</option>
+                      <option value="AC">Acre</option>
+                      <option value="AL">Alagoas</option>
+                      <option value="AP">Amapá</option>
+                      <option value="AM">Amazonas</option>
+                      <option value="BA">Bahia</option>
+                      <option value="CE">Ceará</option>
+                      <option value="DF">Distrito Federal</option>
+                      <option value="ES">Espírito Santo</option>
+                      <option value="GO">Goiás</option>
+                      <option value="MA">Maranhão</option>
+                      <option value="MT">Mato Grosso</option>
+                      <option value="MS">Mato Grosso do Sul</option>
+                      <option value="MG">Minas Gerais</option>
+                      <option value="PA">Pará</option>
+                      <option value="PB">Paraíba</option>
+                      <option value="PR">Paraná</option>
+                      <option value="PE">Pernambuco</option>
+                      <option value="PI">Piauí</option>
+                      <option value="RJ">Rio de Janeiro</option>
+                      <option value="RN">Rio Grande do Norte</option>
+                      <option value="RS">Rio Grande do Sul</option>
+                      <option value="RO">Rondônia</option>
+                      <option value="RR">Roraima</option>
+                      <option value="SC">Santa Catarina</option>
+                      <option value="SP">São Paulo</option>
+                      <option value="SE">Sergipe</option>
+                      <option value="TO">Tocantins</option>
+                    </select>
+                    {errors.estado && (
+                      <p className="mt-1.5 text-sm text-red-600">{errors.estado}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Observações */}
+              <div>
+                <label htmlFor="observacoes" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                  Observações
+                </label>
+                <textarea
+                  id="observacoes"
+                  name="observacoes"
+                  rows={4}
+                  value={formData.observacoes}
+                  onChange={handleChange}
+                  placeholder="Informações adicionais sobre o cliente (opcional)"
+                  className="w-full rounded-lg border border-neutral-300 py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                />
+              </div>
               
               {/* Botões de ação */}
               <div className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-end">
