@@ -213,25 +213,33 @@ export function clearLocalData() {
     console.log('Limpando dados locais armazenados');
     
     // Limpar o flag de dados reais
+    forceUseRealData = false;
+    
+    // Limpar sessão atual
+    currentSession = null;
+    
     if (typeof window !== 'undefined') {
+      // Remover itens específicos do localStorage
       localStorage.removeItem('useRealData');
       localStorage.removeItem('lastSession');
       localStorage.removeItem('userPreferences');
+      localStorage.removeItem('erp-livraria-auth');
       
-      // Limpar outros dados que possam ter sido armazenados
-      const keysToRemove = [];
+      // Limpar supabase-auth-token
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('erp_') || key.startsWith('livraria_'))) {
-          keysToRemove.push(key);
+        if (key && (
+            key.startsWith('erp_') || 
+            key.startsWith('livraria_') || 
+            key.includes('supabase') ||
+            key.includes('auth')
+          )) {
+          localStorage.removeItem(key);
         }
       }
       
-      // Remover os itens em uma lista separada para evitar problemas com a iteração
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      console.log('Dados locais limpos com sucesso');
     }
-    
-    console.log('Dados locais limpos com sucesso');
   } catch (error) {
     console.error('Erro ao limpar dados locais:', error);
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,27 +8,45 @@ import { Loader2 } from 'lucide-react';
 export default function LogoutPage() {
   const { signOut } = useAuth();
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
+    // Usar uma flag para garantir que o redirecionamento ocorra apenas uma vez
+    let isMounted = true;
+
     const performLogout = async () => {
+      if (isRedirecting) return;
+      
       try {
         console.log('Realizando logout...');
         await signOut();
         console.log('Logout concluído, redirecionando para login');
         
-        // Pequeno delay antes de redirecionar para garantir que o estado seja limpo
-        setTimeout(() => {
-          router.push('/login');
-        }, 300);
+        if (isMounted) {
+          setIsRedirecting(true);
+          
+          // Usar window.location para uma navegação completa em vez de router.push
+          // Isso evita problemas de estado persistente que podem causar loops
+          window.location.href = '/login';
+        }
       } catch (error) {
         console.error('Erro ao fazer logout:', error);
         alert('Erro ao fazer logout: ' + (error instanceof Error ? error.message : String(error)));
-        router.push('/login');
+        
+        if (isMounted) {
+          setIsRedirecting(true);
+          window.location.href = '/login';
+        }
       }
     };
 
     performLogout();
-  }, [signOut, router]);
+
+    // Limpar na desmontagem
+    return () => {
+      isMounted = false;
+    };
+  }, [signOut]);
 
   return (
     <div className="flex h-screen flex-col items-center justify-center bg-neutral-50">

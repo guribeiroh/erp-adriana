@@ -62,8 +62,9 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
   // Função para lidar com o logout
   const handleLogout = async () => {
     try {
-      await signOut();
-      router.push('/logout');
+      // Vamos redirecionar para a página de logout em vez de chamar signOut diretamente
+      // Isso centraliza a lógica de logout na página dedicada
+      window.location.href = '/logout';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
       alert('Erro ao fazer logout. Tente novamente.');

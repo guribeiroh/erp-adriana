@@ -65,14 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_IN' && session) {
           forceRealData();
           console.log('Evento de login detectado, forçando uso de dados reais');
-        }
-        
-        // Redirecionar conforme o evento
-        if (event === 'SIGNED_IN') {
+          
+          // Redirecionar apenas no evento SIGNED_IN
           router.push('/dashboard');
-        } else if (event === 'SIGNED_OUT') {
-          router.push('/login');
-        }
+        } 
+        // Removemos o redirecionamento automático no SIGNED_OUT
+        // O redirecionamento será feito pela página de logout
       });
 
       // Limpar o listener quando o componente for desmontado
