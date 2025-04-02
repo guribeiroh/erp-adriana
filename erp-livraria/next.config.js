@@ -20,6 +20,14 @@ const nextConfig = {
       allowedOrigins: ["*"],
       bodySizeLimit: "2mb"
     }
+  },
+  // Garante que o caminho base seja configurado corretamente
+  trailingSlash: false,
+  
+  // Configurações para lidar com arquivos estáticos
+  images: {
+    domains: ['tddcvbsrfwtogmqclxon.supabase.co'],
+    unoptimized: true
   }
 };
 
