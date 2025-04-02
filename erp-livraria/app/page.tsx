@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, Book, DollarSign, ShoppingCart, Users } from 'lucide-react';
 
 export default function Home() {
-  redirect('/dashboard');
+  redirect('/login');
 }
 
 function FeatureCard({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
