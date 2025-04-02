@@ -15,7 +15,8 @@ import {
   MapPin, 
   CalendarClock,
   Save,
-  Loader2
+  Loader2,
+  Instagram
 } from "lucide-react";
 
 // Tipos para validação
@@ -34,6 +35,7 @@ export default function NovoClientePage() {
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
+    instagram: "",
     telefone: "",
     cpfCnpj: "",
     razaoSocial: "",
@@ -254,6 +256,7 @@ export default function NovoClientePage() {
         const customerData = {
           name: formData.nome,
           email: formData.email,
+          instagram: formData.instagram,
           phone: formData.telefone,
           address: formData.endereco,
           city: formData.cidade,
@@ -425,7 +428,7 @@ export default function NovoClientePage() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Email para contato"
+                    placeholder="email@exemplo.com"
                     className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
                       errors.email ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
                     }`}
@@ -434,6 +437,27 @@ export default function NovoClientePage() {
                 {errors.email && (
                   <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
                 )}
+              </div>
+              
+              {/* Instagram */}
+              <div>
+                <label htmlFor="instagram" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                  Instagram
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Instagram className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    id="instagram"
+                    name="instagram"
+                    value={formData.instagram}
+                    onChange={handleChange}
+                    placeholder="usuario (sem @)"
+                    className="w-full rounded-lg border border-neutral-300 bg-white py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  />
+                </div>
               </div>
               
               {/* Telefone */}

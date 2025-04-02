@@ -17,7 +17,8 @@ import {
   Calendar,
   FileText,
   ShoppingBag,
-  CreditCard
+  CreditCard,
+  Instagram
 } from "lucide-react";
 import { fetchCustomerById, deleteCustomer, fetchCustomerPurchaseSummary, CustomerPurchaseSummary } from "@/lib/services/customerService";
 import { Customer } from "@/models/database.types";
@@ -309,15 +310,26 @@ export default function DetalheClientePage() {
               <h2 className="text-lg font-medium text-neutral-900">Informações de Contato</h2>
               
               <div className="mt-4 space-y-4">
-                {cliente?.email && (
-                  <div className="flex items-start gap-3">
-                    <Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-neutral-400" />
-                    <div>
-                      <h3 className="text-sm font-medium text-neutral-900">Email</h3>
-                      <p className="text-neutral-700">{cliente.email}</p>
-                    </div>
-                  </div>
-                )}
+                {/* Email */}
+                <div>
+                  <h3 className="text-sm font-medium text-neutral-500">Email</h3>
+                  <p className="mt-1 flex items-center text-neutral-900">
+                    <Mail className="mr-1.5 h-4 w-4 text-neutral-500" />
+                    {cliente?.email || '-'}
+                  </p>
+                </div>
+                
+                {/* Instagram */}
+                <div>
+                  <h3 className="text-sm font-medium text-neutral-500">Instagram</h3>
+                  <p className="mt-1 flex items-center text-neutral-900">
+                    <Instagram className="mr-1.5 h-4 w-4 text-neutral-500" />
+                    {cliente?.instagram 
+                      ? <a href={`https://instagram.com/${cliente.instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">@{cliente.instagram}</a>
+                      : '-'
+                    }
+                  </p>
+                </div>
                 
                 {cliente?.phone && (
                   <div className="flex items-start gap-3">

@@ -21,6 +21,7 @@ export interface Customer {
   cnpj?: string;
   social_name?: string;
   address_complement?: string;
+  instagram?: string;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
