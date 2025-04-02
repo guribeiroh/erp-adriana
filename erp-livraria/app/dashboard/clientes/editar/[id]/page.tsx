@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { getCustomerById, updateCustomer } from '@/lib/services/customerService';
+import { fetchCustomerById, updateCustomer } from '@/lib/services/customerService';
 import { Customer } from '@/models/database.types';
 import { 
   ArrowLeft, 
@@ -83,7 +83,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
         setIsLoading(true);
         setLoadError(null);
         
-        const customer = await getCustomerById(id);
+        const customer = await fetchCustomerById(id);
         
         if (customer) {
           // Determinar o tipo de cliente
@@ -293,16 +293,16 @@ export default function EditarClientePage({ params }: { params: { id: string } }
         // Adicionar campos específicos por tipo de cliente
         if (tipoCliente === 'pessoaFisica') {
           customerData.cpf = formData.cpfCnpj.replace(/\D/g, '');
-          customerData.cnpj = null;
-          customerData.social_name = null;
+          customerData.cnpj = undefined;
+          customerData.social_name = undefined;
         } else {
           customerData.cnpj = formData.cpfCnpj.replace(/\D/g, '');
           customerData.social_name = formData.razaoSocial;
-          customerData.cpf = null;
+          customerData.cpf = undefined;
         }
         
-        // Enviar para a API
-        await updateCustomer(customerData);
+        // Enviar para a API - a ordem correta é (id, customerData)
+        await updateCustomer(id, customerData);
         
         setSuccess(true);
         
