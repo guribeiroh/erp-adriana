@@ -15,7 +15,8 @@ import {
   CalendarClock,
   Save,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Instagram
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Customer } from "@/models/database.types";
@@ -33,6 +34,7 @@ export default function EditarClientePage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    instagram: "",
     phone: "",
     address: "",
     city: "",
@@ -79,6 +81,7 @@ export default function EditarClientePage() {
         setFormData({
           name: data.name || "",
           email: data.email || "",
+          instagram: data.instagram || "",
           phone: data.phone || "",
           address: data.address || "",
           city: data.city || "",
@@ -236,6 +239,7 @@ export default function EditarClientePage() {
         .update({
           name: formData.name,
           email: formData.email,
+          instagram: formData.instagram,
           phone: formData.phone,
           address: formData.address,
           city: formData.city,
@@ -354,6 +358,26 @@ export default function EditarClientePage() {
                   placeholder="email@exemplo.com"
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              </div>
+              
+              <div>
+                <label htmlFor="instagram" className="block text-sm font-medium text-neutral-700 mb-1">
+                  Instagram
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Instagram className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    id="instagram"
+                    name="instagram"
+                    value={formData.instagram}
+                    onChange={handleChange}
+                    className="w-full rounded-md border border-neutral-300 pl-10 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    placeholder="usuario (sem @)"
+                  />
+                </div>
               </div>
               
               <div>
