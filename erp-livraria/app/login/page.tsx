@@ -13,7 +13,6 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const router = useRouter();
 
-  // Log para debug
   useEffect(() => {
     console.log('============ PÁGINA DE LOGIN CARREGADA ============');
     document.title = 'Login - ERP Livraria';
@@ -47,24 +46,6 @@ export default function LoginPage() {
       }
     };
   }, []);
-
-  const handleTestLogin = () => {
-    try {
-      // Simulação de login de teste com log para debug
-      console.log('Login de teste realizado - iniciando navegação...');
-      
-      // Mostrar alerta antes de redirecionar
-      alert('Redirecionando para o dashboard...');
-      
-      // Usando o router do Next.js
-      router.push('/dashboard');
-      
-      console.log('Navegação para /dashboard solicitada');
-    } catch (error) {
-      console.error('Erro ao navegar:', error);
-      alert('Erro ao navegar: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,28 +91,6 @@ export default function LoginPage() {
       setErrorMessage('Erro no formulário: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Função para exibir o estado atual do Supabase
-  const handleDebug = () => {
-    try {
-      const state = debugSupabaseState();
-      alert(`Estado do Supabase:\n\nForçar dados reais: ${state.forceUseRealData}\nTem sessão: ${state.hasSession}\nCliente disponível: ${state.hasClient}\nVariáveis de ambiente válidas: ${state.envVarsValid}\nUsando dados reais? ${state.shouldUseRealData}`);
-    } catch (error) {
-      console.error('Erro ao depurar:', error);
-      alert('Erro ao depurar. Verifique o console.');
-    }
-  };
-
-  // Função para ir diretamente para o dashboard sem autenticação
-  const handleDirectAccess = () => {
-    try {
-      console.log('Acessando dashboard diretamente sem autenticação...');
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Erro ao acessar diretamente:', error);
-      alert('Erro ao acessar diretamente: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -240,35 +199,6 @@ export default function LoginPage() {
             >
               {isLoading ? 'Entrando...' : 'Entrar'}
               {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-            </button>
-            
-            {/* Botão de Login de Teste */}
-            <button
-              type="button"
-              onClick={handleTestLogin}
-              disabled={isLoading}
-              className="flex w-full items-center justify-center rounded-lg border border-primary-300 bg-white py-3 text-base font-medium text-primary-600 shadow-sm transition-colors hover:bg-primary-50 disabled:opacity-70"
-            >
-              <TestTube className="mr-2 h-4 w-4" />
-              Login de Teste
-            </button>
-            
-            {/* Botão de Acesso Direto */}
-            <button
-              type="button"
-              onClick={handleDirectAccess}
-              className="flex w-full items-center justify-center rounded-lg border border-orange-300 bg-orange-50 py-3 text-base font-medium text-orange-600 shadow-sm transition-colors hover:bg-orange-100"
-            >
-              Acesso Direto ao Dashboard
-            </button>
-            
-            {/* Botão de Debug */}
-            <button
-              type="button"
-              onClick={handleDebug}
-              className="flex w-full items-center justify-center rounded-lg border border-neutral-300 bg-neutral-50 py-2 text-sm text-neutral-700 transition-colors hover:bg-neutral-100"
-            >
-              Verificar Estado
             </button>
           </form>
 
