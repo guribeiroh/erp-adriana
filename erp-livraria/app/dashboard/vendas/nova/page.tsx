@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../../../components/layout/DashboardLayout";
@@ -180,7 +180,20 @@ const convertToBook = (produto: any): Book => {
   };
 };
 
-export default function NovaVendaPage() {
+// Componente de carregamento
+function LoadingState() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2 text-lg">Carregando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Componente principal com Suspense para o useSearchParams
+function NovaVendaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, refreshUser } = useAuth();
@@ -963,5 +976,14 @@ export default function NovaVendaPage() {
         </form>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Componente principal encapsulando o conteúdo com Suspense
+export default function NovaVendaPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <NovaVendaContent />
+    </Suspense>
   );
 } 

@@ -15,7 +15,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    serverActions: true,
+    // Configuração correta para serverActions
+    serverActions: {
+      allowedOrigins: ["*"],
+      bodySizeLimit: "2mb"
+    }
   }
 };
 
