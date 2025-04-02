@@ -16,7 +16,6 @@ export default function DashboardPage() {
               <h1 className="mb-1 text-2xl font-bold">Bom dia, Usuário!</h1>
               <p className="text-primary-100">Aqui está um resumo da sua livraria para hoje.</p>
             </div>
-            <PDVButton className="bg-white text-primary-600 hover:bg-primary-50" />
           </div>
         </div>
 
@@ -149,9 +148,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      
-      {/* Botão flutuante do PDV para acesso rápido em qualquer lugar */}
-      <PDVButton variant="floating" />
     </DashboardLayout>
   );
 }
