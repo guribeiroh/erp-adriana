@@ -337,7 +337,7 @@ export default function EstoquePage() {
                       <tr 
                         key={produto.id} 
                         className="hover:bg-neutral-50 cursor-pointer"
-                        onClick={() => router.push(`/dashboard/produtos/${produto.id}`)}
+                        onClick={() => router.push(`/dashboard/estoque/historico?produto=${produto.id}`)}
                       >
                         <td className="px-4 py-3">
                           <div className="font-medium text-neutral-900">{produto.title}</div>
