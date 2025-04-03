@@ -516,4 +516,72 @@ async function estornarItensParaEstoque(saleId: string): Promise<void> {
     console.error('Erro ao estornar itens para o estoque:', error);
     // Não propagar o erro para não interromper o cancelamento da venda
   }
+}
+
+// Buscar histórico de vendas de um produto específico
+export async function fetchProductSaleHistory(productId: string, limit: number = 50): Promise<any[]> {
+  if (!isSupabaseAvailable) {
+    console.warn('Supabase não está disponível, retornando dados simulados');
+    
+    // Dados simulados de vendas para o produto
+    return Array.from({ length: 5 }, (_, i) => ({
+      id: `sale-${i+1}`,
+      date: new Date(Date.now() - i * 86400000).toISOString(),
+      quantity: Math.floor(Math.random() * 5) + 1,
+      unit_price: sampleBooks.find(b => b.id === productId)?.selling_price || 29.90,
+      total: (Math.floor(Math.random() * 5) + 1) * (sampleBooks.find(b => b.id === productId)?.selling_price || 29.90),
+      customer_name: sampleCustomers[Math.floor(Math.random() * sampleCustomers.length)].name,
+      payment_method: ['cash', 'credit_card', 'debit_card', 'pix'][Math.floor(Math.random() * 4)],
+      payment_status: ['paid', 'pending'][Math.floor(Math.random() * 2)]
+    }));
+  }
+
+  try {
+    // Obter vendas através dos itens de venda
+    const { data: saleItems, error: itemsError } = await supabase
+      .from('sale_items')
+      .select(`
+        id,
+        quantity,
+        unit_price,
+        discount,
+        total,
+        sale_id,
+        sales:sale_id (
+          id,
+          created_at,
+          payment_method,
+          payment_status,
+          customer_id,
+          customers:customer_id (
+            id,
+            name
+          )
+        )
+      `)
+      .eq('book_id', productId)
+      .order('created_at', { foreignTable: 'sales', ascending: false })
+      .limit(limit);
+
+    if (itemsError) {
+      console.error('Erro ao buscar histórico de vendas do produto:', itemsError);
+      throw new Error('Não foi possível buscar o histórico de vendas');
+    }
+
+    return saleItems.map(item => ({
+      id: item.id,
+      sale_id: item.sale_id,
+      date: item.sales?.created_at,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      discount: item.discount,
+      total: item.total,
+      customer_name: item.sales?.customers?.name || 'Cliente não identificado',
+      payment_method: item.sales?.payment_method,
+      payment_status: item.sales?.payment_status
+    })) || [];
+  } catch (error) {
+    console.error('Erro ao buscar histórico de vendas do produto:', error);
+    throw new Error('Não foi possível buscar o histórico de vendas');
+  }
 } 
