@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { bookService, Book } from "@/lib/services/bookService";
 import { stockService, StockMovementWithBook } from "@/lib/services/stockService";
+import { useRouter } from "next/navigation";
 
 // Interface para livro com status de estoque calculado
 interface BookWithStockStatus extends Book {
@@ -40,6 +41,8 @@ export default function EstoquePage() {
   
   // Estado para movimentações de estoque
   const [movimentacoes, setMovimentacoes] = useState<StockMovementWithBook[]>([]);
+  
+  const router = useRouter();
   
   // Buscar livros e suas movimentações
   useEffect(() => {
@@ -333,7 +336,8 @@ export default function EstoquePage() {
                     {produtosFiltrados.map((produto) => (
                       <tr 
                         key={produto.id} 
-                        className="hover:bg-neutral-50"
+                        className="hover:bg-neutral-50 cursor-pointer"
+                        onClick={() => router.push(`/dashboard/produtos/${produto.id}`)}
                       >
                         <td className="px-4 py-3">
                           <div className="font-medium text-neutral-900">{produto.title}</div>

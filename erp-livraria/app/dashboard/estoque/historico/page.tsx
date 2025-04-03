@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../../../components/layout/DashboardLayout";
 import { ArrowLeft, Search, Filter, Calendar, Package, ArrowUp, ArrowDown, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { stockService, StockMovementWithBook } from "@/lib/services/stockService";
+import { fetchBookById } from "@/lib/services/pdvService";
+import { Book } from "@/models/database.types";
 
 // Constantes para usar nas filtragens
 const TIPOS_MOVIMENTACAO = {
@@ -39,11 +41,16 @@ const getNomeMotivo = (tipo: string, motivoId: string): string => {
 
 export default function HistoricoMovimentacoesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // ID do produto para filtrar, se houver
+  const produtoId = searchParams.get('produto');
   
   // Estados
   const [movimentacoes, setMovimentacoes] = useState<StockMovementWithBook[]>([]);
   const [carregando, setCarregando] = useState<boolean>(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [produtoFiltrado, setProdutoFiltrado] = useState<Book | null>(null);
   
   // Estados de filtro e paginação
   const [termoBusca, setTermoBusca] = useState<string>("");
@@ -67,12 +74,41 @@ export default function HistoricoMovimentacoesPage() {
     setErro(null);
     
     try {
-      const response = await stockService.getMovementsWithBooks(100);
-      
-      if (response.status === 'success' && response.data) {
-        setMovimentacoes(response.data);
+      // Se tivermos um ID de produto, buscar detalhes do produto e suas movimentações específicas
+      if (produtoId) {
+        // Buscar detalhes do produto
+        const produto = await fetchBookById(produtoId);
+        
+        if (!produto) {
+          throw new Error('Produto não encontrado');
+        }
+        
+        setProdutoFiltrado(produto);
+        
+        // Buscar movimentações específicas para este produto
+        const bookMovementsResponse = await stockService.getBookMovements(produtoId);
+        
+        if (bookMovementsResponse.status === 'success' && bookMovementsResponse.data) {
+          // Precisamos converter StockMovement para StockMovementWithBook, 
+          // adicionando a informação do livro encontrado
+          const movementsWithBook = bookMovementsResponse.data.map(movement => ({
+            ...movement,
+            book: produto
+          })) as StockMovementWithBook[];
+          
+          setMovimentacoes(movementsWithBook);
+        } else {
+          setErro(bookMovementsResponse.error || 'Erro ao carregar movimentações do produto');
+        }
       } else {
-        setErro(response.error || 'Erro ao carregar movimentações');
+        // Buscar todas as movimentações normalmente
+        const response = await stockService.getMovementsWithBooks(100);
+        
+        if (response.status === 'success' && response.data) {
+          setMovimentacoes(response.data);
+        } else {
+          setErro(response.error || 'Erro ao carregar movimentações');
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar movimentações:', error);
@@ -151,27 +187,31 @@ export default function HistoricoMovimentacoesPage() {
   };
   
   return (
-    <DashboardLayout title="Histórico de Movimentações">
+    <DashboardLayout title={produtoFiltrado ? `Histórico de Movimentações - ${produtoFiltrado.title}` : "Histórico de Movimentações"}>
       <div className="space-y-6">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link 
-              href="/dashboard/estoque" 
+              href={produtoFiltrado ? `/dashboard/produtos/${produtoId}` : "/dashboard/estoque"} 
               className="rounded-full p-1.5 text-neutral-700 hover:bg-neutral-100"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <h1 className="text-2xl font-bold text-neutral-900">
-              Histórico de Movimentações
+              {produtoFiltrado 
+                ? `Movimentações de Estoque: ${produtoFiltrado.title}` 
+                : "Histórico de Movimentações"}
             </h1>
           </div>
-          <Link
-            href="/dashboard/estoque/movimentacao"
-            className="rounded-lg bg-primary-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-primary-700"
-          >
-            Nova Movimentação
-          </Link>
+          {produtoFiltrado ? null : (
+            <Link
+              href="/dashboard/estoque/movimentacao"
+              className="rounded-lg bg-primary-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-primary-700"
+            >
+              Nova Movimentação
+            </Link>
+          )}
         </div>
         
         {/* Barra de pesquisa e filtros */}

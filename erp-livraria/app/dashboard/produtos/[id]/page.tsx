@@ -21,7 +21,8 @@ import {
   PenTool,
   Building,
   User,
-  RefreshCw
+  RefreshCw,
+  History
 } from "lucide-react";
 import { supabase, getAuthStatus } from "@/lib/supabase/client";
 
@@ -115,6 +116,11 @@ export default function DetalheProdutoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [tentativaReload, setTentativaReload] = useState(0);
   const componentMounted = useRef(true);
+
+  // Função para navegar para o histórico de movimentações do produto
+  const verMovimentacoesEstoque = () => {
+    router.push(`/dashboard/estoque/historico?produto=${params.id}`);
+  };
 
   // Verificar e salvar o estado de que esta página foi visitada
   useEffect(() => {
@@ -568,11 +574,11 @@ export default function DetalheProdutoPage() {
           
           <div className="flex items-center gap-2">
             <Link
-              href={`/dashboard/produtos/${produto.id}/editar`}
+              href={`/dashboard/produtos/${produtoIdRef.current}/editar`}
               className="flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
             >
               <Edit className="h-4 w-4" />
-              Editar
+              Editar Produto
             </Link>
             <button
               onClick={handleExcluir}
@@ -580,6 +586,13 @@ export default function DetalheProdutoPage() {
             >
               <Trash2 className="h-4 w-4" />
               Excluir
+            </button>
+            <button
+              onClick={verMovimentacoesEstoque}
+              className="flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+            >
+              <History className="h-4 w-4" />
+              Movimentações
             </button>
           </div>
         </div>
