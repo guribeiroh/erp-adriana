@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../../../components/layout/DashboardLayout";
@@ -9,37 +9,8 @@ import { stockService, StockMovementWithBook } from "@/lib/services/stockService
 import { fetchBookById } from "@/lib/services/pdvService";
 import { Book } from "@/models/database.types";
 
-// Constantes para usar nas filtragens
-const TIPOS_MOVIMENTACAO = {
-  TODOS: "todos",
-  ENTRADA: "entrada",
-  SAIDA: "saida",
-};
-
-const MOTIVOS_MOVIMENTACAO = {
-  entrada: [
-    { id: "compra", nome: "Compra de Fornecedor" },
-    { id: "devolucao", nome: "Devolução de Cliente" },
-    { id: "ajuste", nome: "Ajuste de Inventário" },
-    { id: "outro", nome: "Outro" }
-  ],
-  saida: [
-    { id: "venda", nome: "Venda" },
-    { id: "perda", nome: "Perda ou Avaria" },
-    { id: "doacao", nome: "Doação" },
-    { id: "ajuste", nome: "Ajuste de Inventário" },
-    { id: "outro", nome: "Outro" }
-  ]
-};
-
-// Função para obter o nome do motivo a partir do id
-const getNomeMotivo = (tipo: string, motivoId: string): string => {
-  const lista = tipo === "entrada" ? MOTIVOS_MOVIMENTACAO.entrada : MOTIVOS_MOVIMENTACAO.saida;
-  const motivo = lista.find(m => m.id === motivoId);
-  return motivo ? motivo.nome : motivoId;
-};
-
-export default function HistoricoMovimentacoesPage() {
+// Componente para o conteúdo da página envolto por Suspense
+function HistoricoMovimentacoesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -187,7 +158,7 @@ export default function HistoricoMovimentacoesPage() {
   };
   
   return (
-    <DashboardLayout title={produtoFiltrado ? `Histórico de Movimentações - ${produtoFiltrado.title}` : "Histórico de Movimentações"}>
+    <>
       <div className="space-y-6">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
@@ -290,7 +261,7 @@ export default function HistoricoMovimentacoesPage() {
                       setFiltroDataInicio(e.target.value);
                       setPaginaAtual(1);
                     }}
-                    className="block w-full rounded-md border-neutral-300 pl-10 py-2 text-neutral-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    className="block w-full rounded-md border-neutral-300 pl-10 py-2 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                   />
                 </div>
               </div>
@@ -311,7 +282,7 @@ export default function HistoricoMovimentacoesPage() {
                       setFiltroDataFim(e.target.value);
                       setPaginaAtual(1);
                     }}
-                    className="block w-full rounded-md border-neutral-300 pl-10 py-2 text-neutral-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    className="block w-full rounded-md border-neutral-300 pl-10 py-2 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                   />
                 </div>
               </div>
@@ -328,15 +299,16 @@ export default function HistoricoMovimentacoesPage() {
           )}
         </div>
         
-        {/* Tabela de movimentações */}
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm">
+        {/* Conteúdo principal */}
+        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+          {/* Mensagem de carregamento */}
           {carregando ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-              <span className="ml-3 text-lg text-neutral-500">Carregando movimentações...</span>
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+              <p className="mt-2 text-neutral-500">Carregando movimentações...</p>
             </div>
           ) : erro ? (
-            <div className="p-6 text-center">
+            <div className="flex flex-col items-center justify-center py-8">
               <p className="text-red-500">{erro}</p>
               <button
                 onClick={buscarMovimentacoes}
@@ -534,6 +506,51 @@ export default function HistoricoMovimentacoesPage() {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+// Constantes para usar nas filtragens
+const TIPOS_MOVIMENTACAO = {
+  TODOS: "todos",
+  ENTRADA: "entrada",
+  SAIDA: "saida",
+};
+
+const MOTIVOS_MOVIMENTACAO = {
+  entrada: [
+    { id: "compra", nome: "Compra de Fornecedor" },
+    { id: "devolucao", nome: "Devolução de Cliente" },
+    { id: "ajuste", nome: "Ajuste de Inventário" },
+    { id: "outro", nome: "Outro" }
+  ],
+  saida: [
+    { id: "venda", nome: "Venda" },
+    { id: "perda", nome: "Perda ou Avaria" },
+    { id: "doacao", nome: "Doação" },
+    { id: "ajuste", nome: "Ajuste de Inventário" },
+    { id: "outro", nome: "Outro" }
+  ]
+};
+
+// Função para obter o nome do motivo a partir do id
+const getNomeMotivo = (tipo: string, motivoId: string): string => {
+  const lista = tipo === "entrada" ? MOTIVOS_MOVIMENTACAO.entrada : MOTIVOS_MOVIMENTACAO.saida;
+  const motivo = lista.find(m => m.id === motivoId);
+  return motivo ? motivo.nome : motivoId;
+};
+
+export default function HistoricoMovimentacoesPage() {
+  return (
+    <DashboardLayout title="Histórico de Movimentações">
+      <Suspense fallback={
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-600" />
+          <p className="mt-4 text-neutral-600">Carregando histórico de movimentações...</p>
+        </div>
+      }>
+        <HistoricoMovimentacoesContent />
+      </Suspense>
     </DashboardLayout>
   );
 } 
