@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { Book, Customer, Sale, SaleItem } from '@/models/database.types';
 import { CartItem } from '@/lib/context/CartContext';
+import { stockService } from '@/lib/services/stockService';
 
 // Dados de exemplo para usar quando o Supabase não estiver configurado
 const sampleBooks: Book[] = [
@@ -233,6 +234,25 @@ export async function finalizeSale(
   // Se Supabase não estiver disponível, simular o processo
   if (!isSupabaseAvailable) {
     console.warn('Supabase não está disponível, simulando venda');
+    
+    // Simular redução de estoque e registrar movimentações
+    for (const item of items) {
+      try {
+        // Registrar movimentação de estoque simulada
+        await stockService.createMovement({
+          book_id: item.book.id,
+          type: 'saida',
+          quantity: item.quantity,
+          reason: 'venda',
+          notes: `Venda simulada`,
+          responsible: userId || 'usuário-simulado'
+        });
+        console.log(`Movimentação de estoque simulada registrada para o livro ${item.book.id}`);
+      } catch (error) {
+        console.error(`Erro ao registrar movimentação simulada:`, error);
+      }
+    }
+    
     // Simular o ID da venda
     return `simulated-${Date.now()}`;
   }
@@ -340,6 +360,7 @@ export async function finalizeSale(
     // Atualizar o estoque dos livros
     console.log('Atualizando estoque dos livros...');
     for (const item of items) {
+      // Atualizar o estoque diretamente no banco de dados
       const { error: bookError } = await supabase
         .from('books')
         .update({ 
@@ -349,6 +370,22 @@ export async function finalizeSale(
 
       if (bookError) {
         console.error(`Erro ao atualizar estoque do livro ${item.book.id}:`, bookError);
+        // Não interromper o processo, apenas logar o erro
+      }
+      
+      // Registrar movimentação de estoque
+      try {
+        await stockService.createMovement({
+          book_id: item.book.id,
+          type: 'saida',
+          quantity: item.quantity,
+          reason: 'venda',
+          notes: `Venda #${sale.id}`,
+          responsible: authenticatedUserId
+        });
+        console.log(`Movimentação de estoque registrada para o livro ${item.book.id}`);
+      } catch (movementError) {
+        console.error(`Erro ao registrar movimentação de estoque para o livro ${item.book.id}:`, movementError);
         // Não interromper o processo, apenas logar o erro
       }
     }
