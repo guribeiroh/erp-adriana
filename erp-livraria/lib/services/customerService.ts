@@ -68,6 +68,13 @@ export interface CustomerPurchaseSummary {
     total: number;
     paymentMethod: string;
     status: string;
+    items?: {
+      book_id: string;
+      book_title: string;
+      book_image?: string;
+      quantity: number;
+      unit_price: number;
+    }[];
   }[];
 }
 
@@ -292,14 +299,47 @@ export async function fetchCustomerPurchaseSummary(customerId: string): Promise<
     const totalSpent = sales?.reduce((sum, sale) => sum + (sale.total || 0), 0) || 0;
     const lastPurchaseDate = sales && sales.length > 0 ? sales[0].created_at : undefined;
 
-    // Preparar dados das compras recentes (limitado a 5)
-    const recentPurchases = (sales || []).slice(0, 5).map(sale => ({
-      id: sale.id,
-      date: sale.created_at,
-      total: sale.total,
-      paymentMethod: sale.payment_method,
-      status: sale.payment_status
-    }));
+    // Buscar detalhes de até 5 compras recentes
+    const recentPurchases = [];
+    for (const sale of (sales || []).slice(0, 5)) {
+      // Buscar itens da venda
+      const { data: saleItems, error: saleItemsError } = await supabase
+        .from('sale_items')
+        .select(`
+          id,
+          book_id,
+          quantity,
+          unit_price,
+          books:book_id (
+            id,
+            title,
+            image_url
+          )
+        `)
+        .eq('sale_id', sale.id);
+
+      if (saleItemsError) {
+        console.error('Erro ao buscar itens da venda:', saleItemsError);
+      }
+
+      // Preparar dados dos itens
+      const items = saleItems?.map(item => ({
+        book_id: item.book_id,
+        book_title: item.books?.title || 'Livro não encontrado',
+        book_image: item.books?.image_url,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      })) || [];
+
+      recentPurchases.push({
+        id: sale.id,
+        date: sale.created_at,
+        total: sale.total,
+        paymentMethod: sale.payment_method,
+        status: sale.payment_status,
+        items
+      });
+    }
 
     return {
       totalPurchases,

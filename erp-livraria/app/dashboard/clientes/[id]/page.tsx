@@ -18,7 +18,8 @@ import {
   FileText,
   ShoppingBag,
   CreditCard,
-  Instagram
+  Instagram,
+  Package
 } from "lucide-react";
 import { fetchCustomerById, deleteCustomer, fetchCustomerPurchaseSummary, CustomerPurchaseSummary } from "@/lib/services/customerService";
 import { Customer } from "@/models/database.types";
@@ -430,19 +431,11 @@ export default function DetalheClientePage() {
                     <Link 
                       key={compra.id}
                       href={`/dashboard/vendas/${compra.id}`}
-                      className="flex items-center justify-between rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50"
+                      className="block rounded-lg border border-neutral-200 p-4 hover:bg-neutral-50"
                     >
-                      <div>
-                        <p className="font-medium text-neutral-900">
-                          Compra #{compra.id.slice(0, 8)}
-                        </p>
+                      <div className="flex justify-between items-center mb-3">
                         <p className="text-sm text-neutral-500">
                           {new Date(compra.date).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-neutral-900">
-                          R$ {formatarMoeda(compra.total)}
                         </p>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           compra.status === 'paid' 
@@ -457,6 +450,49 @@ export default function DetalheClientePage() {
                               ? 'Pendente'
                               : 'Cancelado'}
                         </span>
+                      </div>
+                      
+                      {compra.items && compra.items.length > 0 ? (
+                        <div className="space-y-3">
+                          {compra.items.slice(0, 2).map((item, index) => (
+                            <div key={index} className="flex items-center gap-3">
+                              <div className="h-14 w-10 flex-shrink-0 overflow-hidden rounded border border-neutral-200 bg-neutral-50">
+                                {item.book_image ? (
+                                  <img 
+                                    src={item.book_image} 
+                                    alt={item.book_title}
+                                    className="h-full w-full object-cover" 
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center bg-neutral-100">
+                                    <Package className="h-4 w-4 text-neutral-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-neutral-900 truncate">{item.book_title}</p>
+                                <p className="text-sm text-neutral-500">
+                                  {item.quantity} {item.quantity > 1 ? 'unidades' : 'unidade'} • R$ {formatarMoeda(item.unit_price)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {compra.items.length > 2 && (
+                            <p className="text-xs text-neutral-500 mt-1">
+                              + {compra.items.length - 2} outros livros
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="py-2 text-sm text-neutral-500">
+                          Detalhes dos livros não disponíveis
+                        </div>
+                      )}
+                      
+                      <div className="mt-3 flex justify-between items-center pt-2 border-t border-neutral-100">
+                        <span className="text-sm text-neutral-500">Total:</span>
+                        <span className="font-medium text-neutral-900">R$ {formatarMoeda(compra.total)}</span>
                       </div>
                     </Link>
                   ))}
