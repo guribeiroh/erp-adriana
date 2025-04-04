@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { 
@@ -232,7 +232,23 @@ const transacoesSimuladas: Transacao[] = [
   }
 ];
 
-export default function FinanceiroPage() {
+// Componente de carregamento
+function FinanceiroLoading() {
+  return (
+    <DashboardLayout title="Financeiro">
+      <div className="flex h-[300px] items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-neutral-300 border-t-primary-600 mx-auto"></div>
+          <p className="text-neutral-600">Carregando informações financeiras...</p>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+// Componente principal
+function FinanceiroPage() {
+  // Estados
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [transacoesFiltradas, setTransacoesFiltradas] = useState<Transacao[]>([]);
   const [busca, setBusca] = useState("");
@@ -738,5 +754,14 @@ function StatusBadge({ status }: { status: TransacaoStatus }) {
       {status === "pendente" && "Pendente"}
       {status === "cancelada" && "Cancelada"}
     </span>
+  );
+}
+
+// Exporta o componente principal em um Suspense
+export default function FinanceiroPageWrapper() {
+  return (
+    <Suspense fallback={<FinanceiroLoading />}>
+      <FinanceiroPage />
+    </Suspense>
   );
 } 
