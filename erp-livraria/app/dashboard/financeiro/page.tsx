@@ -570,6 +570,7 @@ function FinanceiroPage() {
                     <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Categoria</th>
                     <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Valor</th>
                     <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Status</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Link</th>
                     <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Ações</th>
                   </tr>
                 </thead>
@@ -602,6 +603,18 @@ function FinanceiroPage() {
                           <StatusBadge status={transacao.status} />
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
+                          {transacao.linkVenda && (
+                            <Link
+                              href={transacao.linkVenda}
+                              className="rounded p-1 text-primary-600 hover:bg-neutral-100 hover:underline flex items-center"
+                              title="Ver venda"
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-1" />
+                              <span>Ver venda</span>
+                            </Link>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
                           <div className="flex items-center gap-2">
                             <Link
                               href={`/dashboard/financeiro/${transacao.id}`}
@@ -631,7 +644,7 @@ function FinanceiroPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-neutral-500">
+                      <td colSpan={7} className="px-4 py-6 text-center text-neutral-500">
                         Nenhuma transação encontrada com os filtros selecionados.
                       </td>
                     </tr>

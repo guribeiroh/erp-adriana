@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Book, Customer, Sale, SaleItem } from '@/models/database.types';
 import { CartItem } from '@/lib/context/CartContext';
 import { stockService } from '@/lib/services/stockService';
+import * as financialService from '@/lib/services/financialService';
 
 // Dados de exemplo para usar quando o Supabase não estiver configurado
 const sampleBooks: Book[] = [
@@ -253,8 +254,46 @@ export async function finalizeSale(
       }
     }
     
-    // Simular o ID da venda
-    return `simulated-${Date.now()}`;
+    // Gerar ID da venda simulada
+    const saleId = `simulated-${Date.now()}`;
+    
+    // Obter nome do cliente para a descrição
+    let nomeCliente = 'Cliente não identificado';
+    if (customerId) {
+      try {
+        const cliente = sampleCustomers.find(c => c.id === customerId);
+        if (cliente) {
+          nomeCliente = cliente.name;
+        }
+      } catch (error) {
+        console.error('Erro ao buscar nome do cliente:', error);
+      }
+    }
+    
+    // Registrar a transação financeira
+    try {
+      const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
+      await financialService.createTransacao({
+        descricao: `Venda - ${nomeCliente}`,
+        valor: total,
+        data: new Date().toISOString().split('T')[0],
+        dataPagamento: new Date().toISOString().split('T')[0],
+        tipo: 'receita',
+        categoria: 'Vendas',
+        status: 'confirmada',
+        formaPagamento,
+        vinculoId: saleId,
+        vinculoTipo: 'venda',
+        observacoes: notes || undefined,
+        linkVenda: `/pdv/vendas/${saleId}`
+      });
+      console.log('Transação financeira simulada registrada com sucesso');
+    } catch (error) {
+      console.error('Erro ao registrar transação financeira simulada:', error);
+      // Não interrompe o fluxo em caso de erro
+    }
+    
+    return saleId;
   }
 
   try {
@@ -389,12 +428,74 @@ export async function finalizeSale(
         // Não interromper o processo, apenas logar o erro
       }
     }
+    
+    // Buscar o nome do cliente para incluir na descrição da transação
+    let nomeCliente = 'Cliente não identificado';
+    if (customerId) {
+      try {
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('name')
+          .eq('id', customerId)
+          .single();
+          
+        if (!customerError && customerData) {
+          nomeCliente = customerData.name;
+        }
+      } catch (error) {
+        console.error('Erro ao buscar nome do cliente:', error);
+      }
+    }
+    
+    // Registrar a transação financeira
+    try {
+      console.log('Registrando transação financeira...');
+      const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
+      const dataAtual = new Date().toISOString().split('T')[0];
+      
+      await financialService.createTransacao({
+        descricao: `Venda - ${nomeCliente}`,
+        valor: total,
+        data: dataAtual,
+        dataPagamento: dataAtual,
+        tipo: 'receita',
+        categoria: 'Vendas',
+        status: 'confirmada',
+        formaPagamento,
+        vinculoId: sale.id,
+        vinculoTipo: 'venda',
+        observacoes: notes || undefined,
+        linkVenda: `/pdv/vendas/${sale.id}`
+      });
+      console.log('Transação financeira registrada com sucesso');
+    } catch (error) {
+      console.error('Erro ao registrar transação financeira:', error);
+      // Não interrompe o fluxo principal em caso de erro no registro financeiro
+    }
 
     console.log('Venda finalizada com sucesso!');
     return sale.id;
   } catch (error) {
     console.error('Erro ao finalizar venda:', error);
     throw error;
+  }
+}
+
+// Função auxiliar para mapear os métodos de pagamento do PDV para os tipos do serviço financeiro
+function mapPaymentMethodToFinancial(paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer'): financialService.FormaPagamento {
+  switch (paymentMethod) {
+    case 'cash':
+      return 'dinheiro';
+    case 'credit_card':
+      return 'credito';
+    case 'debit_card':
+      return 'debito';
+    case 'pix':
+      return 'pix';
+    case 'transfer':
+      return 'transferencia';
+    default:
+      return 'outros';
   }
 }
 
@@ -470,6 +571,41 @@ export async function updateSalePaymentStatus(
 ): Promise<boolean> {
   if (!isSupabaseAvailable) {
     console.warn('Supabase não está disponível, simulando atualização');
+    
+    // Atualizar a transação financeira correspondente
+    try {
+      // Buscar transações vinculadas a esta venda
+      const { transacoes } = await financialService.fetchTransacoes({
+        vinculoId: saleId,
+        vinculoTipo: 'venda',
+        limit: 1
+      });
+      
+      // Se encontrou alguma transação vinculada à venda
+      if (transacoes.length > 0) {
+        const transacao = transacoes[0];
+        
+        // Mapear status da venda para status da transação financeira
+        let statusFinanceiro: financialService.TransacaoStatus;
+        if (status === 'paid') statusFinanceiro = 'confirmada';
+        else if (status === 'pending') statusFinanceiro = 'pendente';
+        else statusFinanceiro = 'cancelada';
+        
+        // Atualizar status da transação
+        await financialService.updateTransacao(transacao.id, { 
+          status: statusFinanceiro,
+          observacoes: notes ? (transacao.observacoes ? `${transacao.observacoes}; ${notes}` : notes) : undefined
+        });
+        
+        console.log(`Transação financeira atualizada para status: ${statusFinanceiro}`);
+      } else {
+        console.warn('Nenhuma transação financeira encontrada para esta venda');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar transação financeira:', error);
+      // Não interromper o fluxo principal em caso de erro
+    }
+    
     return true;
   }
 
@@ -500,12 +636,117 @@ export async function updateSalePaymentStatus(
     if (status === 'canceled') {
       await estornarItensParaEstoque(saleId);
     }
+    
+    // Atualizar a transação financeira correspondente
+    try {
+      // Buscar informações da venda para obter o total e o cliente
+      const { data: saleData } = await supabase
+        .from('sales')
+        .select('total, customer_id')
+        .eq('id', saleId)
+        .single();
+      
+      // Buscar nome do cliente
+      let nomeCliente = 'Cliente não identificado';
+      if (saleData?.customer_id) {
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('name')
+          .eq('id', saleData.customer_id)
+          .single();
+          
+        if (customerData) {
+          nomeCliente = customerData.name;
+        }
+      }
+        
+      // Buscar transações vinculadas a esta venda
+      const { transacoes } = await financialService.fetchTransacoes({
+        vinculoId: saleId,
+        vinculoTipo: 'venda',
+        limit: 1
+      });
+      
+      // Se encontrou alguma transação vinculada à venda
+      if (transacoes.length > 0) {
+        const transacao = transacoes[0];
+        
+        // Mapear status da venda para status da transação financeira
+        let statusFinanceiro: financialService.TransacaoStatus;
+        if (status === 'paid') statusFinanceiro = 'confirmada';
+        else if (status === 'pending') statusFinanceiro = 'pendente';
+        else statusFinanceiro = 'cancelada';
+        
+        // Atualizar status da transação
+        await financialService.updateTransacao(transacao.id, { 
+          status: statusFinanceiro,
+          descricao: `Venda - ${nomeCliente}`,
+          dataPagamento: status === 'paid' ? new Date().toISOString().split('T')[0] : undefined,
+          observacoes: notes ? (transacao.observacoes ? `${transacao.observacoes}; ${notes}` : notes) : undefined,
+          linkVenda: `/pdv/vendas/${saleId}`
+        });
+        
+        console.log(`Transação financeira atualizada para status: ${statusFinanceiro}`);
+      } else if (status === 'paid') {
+        // Se a venda foi paga mas não existe transação, criar uma nova
+        console.log('Nenhuma transação financeira encontrada. Criando nova transação para venda paga...');
+        
+        if (saleData && saleData.total) {
+          const formaPagamento = await getFormaPagamentoVenda(saleId);
+          
+          await financialService.createTransacao({
+            descricao: `Venda - ${nomeCliente}`,
+            valor: saleData.total,
+            data: new Date().toISOString().split('T')[0],
+            dataPagamento: new Date().toISOString().split('T')[0],
+            tipo: 'receita',
+            categoria: 'Vendas',
+            status: 'confirmada',
+            formaPagamento,
+            vinculoId: saleId,
+            vinculoTipo: 'venda',
+            observacoes: notes || undefined,
+            linkVenda: `/pdv/vendas/${saleId}`
+          });
+          
+          console.log('Nova transação financeira criada para venda paga');
+        } else {
+          console.warn('Dados da venda não disponíveis para criar transação financeira');
+        }
+      } else {
+        console.warn('Nenhuma transação financeira encontrada para esta venda');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar transação financeira:', error);
+      // Não interromper o fluxo principal em caso de erro
+    }
 
     console.log(`Status da venda ${saleId} atualizado com sucesso para ${status}`);
     return true;
   } catch (error) {
     console.error('Erro ao atualizar status da venda:', error);
     throw error;
+  }
+}
+
+// Função auxiliar para obter o método de pagamento da venda
+async function getFormaPagamentoVenda(saleId: string): Promise<financialService.FormaPagamento> {
+  try {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('payment_method')
+      .eq('id', saleId)
+      .single();
+      
+    if (error || !data) {
+      console.error('Erro ao buscar método de pagamento da venda:', error);
+      return 'outros';
+    }
+    
+    return mapPaymentMethodToFinancial(data.payment_method);
+  } catch (error) {
+    console.error('Erro ao obter forma de pagamento da venda:', error);
+    return 'outros';
   }
 }
 
@@ -530,6 +771,20 @@ async function estornarItensParaEstoque(saleId: string): Promise<void> {
       return;
     }
 
+    // Buscar informações da venda para obter o usuário responsável
+    const { data: saleData, error: saleError } = await supabase
+      .from('sales')
+      .select('user_id, customer_id')
+      .eq('id', saleId)
+      .single();
+
+    if (saleError) {
+      console.error('Erro ao buscar informações da venda para estorno:', saleError);
+      // Continuar mesmo sem as informações do usuário
+    }
+
+    const responsibleUserId = saleData?.user_id || 'sistema';
+
     // Atualizar o estoque dos livros
     for (const item of items) {
       console.log(`Estornando ${item.quantity} unidades do livro ${item.book_id}`);
@@ -546,6 +801,68 @@ async function estornarItensParaEstoque(saleId: string): Promise<void> {
         console.error(`Erro ao estornar estoque do livro ${item.book_id}:`, bookError);
         // Não interromper o processo, apenas logar o erro
       }
+      
+      // Registrar movimentação de estoque para o estorno
+      try {
+        await stockService.createMovement({
+          book_id: item.book_id,
+          type: 'entrada',
+          quantity: item.quantity,
+          reason: 'estorno',
+          notes: `Estorno da venda #${saleId}`,
+          responsible: responsibleUserId
+        });
+        console.log(`Movimentação de estoque de estorno registrada para o livro ${item.book_id}`);
+      } catch (movementError) {
+        console.error(`Erro ao registrar movimentação de estoque para estorno do livro ${item.book_id}:`, movementError);
+        // Não interromper o processo, apenas logar o erro
+      }
+    }
+    
+    // Atualizar a transação financeira correspondente se o estorno incluir aspectos financeiros
+    try {
+      // Buscar transações vinculadas a esta venda
+      const { transacoes } = await financialService.fetchTransacoes({
+        vinculoId: saleId,
+        vinculoTipo: 'venda',
+        limit: 1
+      });
+      
+      // Buscar nome do cliente
+      let nomeCliente = 'Cliente não identificado';
+      if (saleData?.customer_id) {
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('name')
+          .eq('id', saleData.customer_id)
+          .single();
+          
+        if (customerData) {
+          nomeCliente = customerData.name;
+        }
+      }
+      
+      // Se encontrou alguma transação vinculada à venda, cancelá-la
+      if (transacoes.length > 0) {
+        const transacao = transacoes[0];
+        console.log(`Cancelando transação financeira ${transacao.id} relacionada à venda estornada`);
+        
+        await financialService.updateTransacao(transacao.id, { 
+          status: 'cancelada',
+          descricao: `Venda - ${nomeCliente}`,
+          observacoes: transacao.observacoes 
+            ? `${transacao.observacoes}; Cancelada automaticamente no estorno da venda #${saleId}` 
+            : `Cancelada automaticamente no estorno da venda #${saleId}`,
+          linkVenda: `/pdv/vendas/${saleId}`
+        });
+        
+        console.log(`Transação financeira ${transacao.id} cancelada com sucesso`);
+      } else {
+        console.warn('Nenhuma transação financeira encontrada para cancelar associada à venda estornada');
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar transação financeira relacionada à venda estornada:', error);
+      // Não interromper o processo, apenas logar o erro
     }
 
     console.log(`Estorno dos itens da venda ${saleId} concluído com sucesso`);
