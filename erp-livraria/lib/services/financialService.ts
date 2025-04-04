@@ -23,33 +23,87 @@ export interface Transacao {
   comprovante?: string; // URL do comprovante
 }
 
-// Verifica se o cliente Supabase está disponível e determina se deve usar dados simulados
-function deveFallbackParaDadosSimulados() {
-  try {
-    // Verifica se o Supabase está definido
-    if (!supabase) {
-      console.warn('Cliente Supabase não está disponível');
-      return true;
-    }
+// Interface que representa o formato dos dados na tabela do Supabase
+interface TransacaoSupabase {
+  id: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  datavencimento?: string;
+  datapagamento?: string;
+  tipo: TransacaoTipo;
+  categoria: string;
+  status: TransacaoStatus;
+  formapagamento?: string;
+  observacoes?: string;
+  vinculoid?: string;
+  vinculotipo?: string;
+  comprovante?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
-    // Verifica se estamos em ambiente de desenvolvimento local sem Supabase
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.info('Ambiente de desenvolvimento local detectado, usando dados simulados');
-      return true;
-    }
+// Converter objeto da interface Transacao para o formato do Supabase
+function transacaoToSupabase(transacao: Omit<Transacao, 'id'>): Omit<TransacaoSupabase, 'id' | 'created_at' | 'updated_at'> {
+  const { dataVencimento, dataPagamento, formaPagamento, vinculoId, vinculoTipo, ...resto } = transacao;
+  
+  return {
+    ...resto,
+    datavencimento: dataVencimento,
+    datapagamento: dataPagamento,
+    formapagamento: formaPagamento,
+    vinculoid: vinculoId,
+    vinculotipo: vinculoTipo
+  };
+}
 
+// Converter objeto do formato do Supabase para a interface Transacao
+function supabaseToTransacao(dados: TransacaoSupabase): Transacao {
+  const { datavencimento, datapagamento, formapagamento, vinculoid, vinculotipo, created_at, updated_at, ...resto } = dados;
+  
+  return {
+    ...resto,
+    dataVencimento: datavencimento,
+    dataPagamento: datapagamento,
+    formaPagamento: formapagamento as FormaPagamento,
+    vinculoId: vinculoid,
+    vinculoTipo: vinculotipo as "venda" | "compra" | "outro"
+  };
+}
+
+// Função para verificar o estado da autenticação antes de operações CRUD
+async function verificarAutenticacao() {
+  if (!supabase) {
+    console.warn('Cliente Supabase não está disponível');
     return false;
-  } catch (error) {
-    console.warn('Erro ao verificar disponibilidade do Supabase, usando dados simulados', error);
+  }
+  
+  try {
+    // Verificar se há uma sessão ativa
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Erro ao verificar autenticação:', error);
+      return false;
+    }
+    
+    if (!data.session) {
+      console.warn('Não há sessão de autenticação ativa');
+      return false;
+    }
+    
+    // Sessão ativa encontrada
+    console.log('Sessão de autenticação verificada, ID do usuário:', data.session.user.id);
     return true;
+  } catch (error) {
+    console.error('Erro inesperado ao verificar autenticação:', error);
+    return false;
   }
 }
 
-// Determina se deve usar dados simulados
-const usarDadosSimulados = deveFallbackParaDadosSimulados();
-
-// Dados simulados para quando o Supabase não estiver disponível
-const transacoesSimuladas: Transacao[] = [
+// Armazenamento local de transações para garantir o funcionamento básico
+// mesmo sem conectividade com o backend
+let localTransacoes: Transacao[] = [
   {
     id: "TRX001",
     descricao: "Venda - Pedido #V001",
@@ -113,68 +167,36 @@ const transacoesSimuladas: Transacao[] = [
     formaPagamento: "debito",
     vinculoId: "V004",
     vinculoTipo: "venda"
-  },
-  {
-    id: "TRX006",
-    descricao: "Pagamento de Aluguel",
-    valor: 2800.00,
-    data: "2023-04-20",
-    dataVencimento: "2023-04-20",
-    dataPagamento: "2023-04-19",
-    tipo: "despesa",
-    categoria: "Aluguel",
-    status: "confirmada",
-    formaPagamento: "transferencia"
-  },
-  {
-    id: "TRX007",
-    descricao: "Fatura de Energia",
-    valor: 385.60,
-    data: "2023-04-18",
-    dataVencimento: "2023-04-25",
-    dataPagamento: "2023-04-22",
-    tipo: "despesa",
-    categoria: "Luz",
-    status: "confirmada",
-    formaPagamento: "boleto"
-  },
-  {
-    id: "TRX008",
-    descricao: "Salários - Abril/2023",
-    valor: 8500.00,
-    data: "2023-04-30",
-    dataVencimento: "2023-04-30",
-    tipo: "despesa",
-    categoria: "Salários",
-    status: "pendente",
-    formaPagamento: "transferencia"
-  },
-  {
-    id: "TRX009",
-    descricao: "Conta de Água",
-    valor: 120.30,
-    data: "2023-04-15",
-    dataVencimento: "2023-04-20",
-    dataPagamento: "2023-04-19",
-    tipo: "despesa",
-    categoria: "Água",
-    status: "confirmada",
-    formaPagamento: "boleto"
-  },
-  {
-    id: "TRX010",
-    descricao: "Venda - Pedido #V006",
-    valor: 64.40,
-    data: "2023-04-22",
-    dataPagamento: "2023-04-22",
-    tipo: "receita",
-    categoria: "Vendas",
-    status: "confirmada",
-    formaPagamento: "pix",
-    vinculoId: "V006",
-    vinculoTipo: "venda"
   }
 ];
+
+// Persistir transações no localStorage para manter dados entre recarregamentos
+function salvarDadosNoStorage() {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('erp-livraria-transacoes', JSON.stringify(localTransacoes));
+    } catch (error) {
+      console.error('Erro ao salvar transações no localStorage:', error);
+    }
+  }
+}
+
+// Carregar transações do localStorage se disponível
+function carregarDadosDoStorage() {
+  if (typeof window !== 'undefined') {
+    try {
+      const dados = localStorage.getItem('erp-livraria-transacoes');
+      if (dados) {
+        localTransacoes = JSON.parse(dados);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar transações do localStorage:', error);
+    }
+  }
+}
+
+// Inicializar dados
+carregarDadosDoStorage();
 
 /**
  * Busca transações com opções de filtragem e paginação
@@ -202,224 +224,215 @@ export async function fetchTransacoes({
   total: number;
   totalPages: number;
 }> {
-  // Se Supabase não estiver disponível, retorna dados simulados
-  if (usarDadosSimulados) {
-    console.warn('Supabase não está disponível, usando dados simulados para transações financeiras');
-    return processarDadosSimulados({ tipo, status, dataInicio, dataFim, categoria, busca, page, limit });
+  // Sempre tentar primeiro com o Supabase
+  if (supabase) {
+    try {
+      console.log('Tentando obter transações do Supabase...');
+      let query = supabase.from('financial_transactions').select('*', { count: 'exact' });
+      
+      // Aplicar filtros
+      if (tipo) {
+        query = query.eq('tipo', tipo);
+      }
+      
+      if (status) {
+        query = query.eq('status', status);
+      }
+      
+      if (dataInicio) {
+        query = query.gte('data', dataInicio);
+      }
+      
+      if (dataFim) {
+        query = query.lte('data', dataFim);
+      }
+      
+      if (categoria) {
+        query = query.eq('categoria', categoria);
+      }
+      
+      if (busca) {
+        query = query.or(`descricao.ilike.%${busca}%,id.ilike.%${busca}%,observacoes.ilike.%${busca}%`);
+      }
+      
+      // Aplicar paginação
+      const start = (page - 1) * limit;
+      query = query.range(start, start + limit - 1);
+      
+      // Ordenar por data (mais recente primeiro)
+      query = query.order('data', { ascending: false });
+      
+      const { data, error, count } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Transações obtidas do Supabase:', data?.length || 0);
+      
+      const total = count || 0;
+      const totalPages = Math.ceil(total / limit);
+      
+      // Converter os dados do formato do Supabase para o formato da interface
+      const transacoes = (data as TransacaoSupabase[]).map(supabaseToTransacao);
+      
+      return {
+        transacoes,
+        total,
+        totalPages
+      };
+    } catch (error) {
+      console.error('Erro ao buscar transações do Supabase:', error);
+      console.log('Usando dados locais para transações...');
+    }
+  } else {
+    console.log('Supabase não está disponível, usando dados locais...');
   }
   
-  // Implementação real com Supabase
+  // Fallback para dados locais
   try {
-    let query = supabase.from('transactions').select('*', { count: 'exact' });
+    // Aplicar filtros aos dados locais
+    let transacoesFiltradas = [...localTransacoes];
     
-    // Aplicar filtros
     if (tipo) {
-      query = query.eq('tipo', tipo);
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.tipo === tipo);
     }
     
     if (status) {
-      query = query.eq('status', status);
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.status === status);
     }
     
     if (dataInicio) {
-      query = query.gte('data', dataInicio);
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.data >= dataInicio);
     }
     
     if (dataFim) {
-      query = query.lte('data', dataFim);
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.data <= dataFim);
     }
     
     if (categoria) {
-      query = query.eq('categoria', categoria);
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.categoria === categoria);
     }
     
     if (busca) {
-      query = query.or(`descricao.ilike.%${busca}%,id.ilike.%${busca}%,observacoes.ilike.%${busca}%`);
+      const termoBusca = busca.toLowerCase();
+      transacoesFiltradas = transacoesFiltradas.filter(t => 
+        t.descricao.toLowerCase().includes(termoBusca) || 
+        t.id.toLowerCase().includes(termoBusca) ||
+        (t.observacoes && t.observacoes.toLowerCase().includes(termoBusca))
+      );
     }
+    
+    // Ordenar por data (mais recente primeiro)
+    transacoesFiltradas.sort((a, b) => {
+      return new Date(b.data).getTime() - new Date(a.data).getTime();
+    });
     
     // Aplicar paginação
     const start = (page - 1) * limit;
-    query = query.range(start, start + limit - 1);
+    const end = start + limit;
+    const transacoesPaginadas = transacoesFiltradas.slice(start, end);
     
-    // Ordenar por data (mais recente primeiro)
-    query = query.order('data', { ascending: false });
-    
-    const { data, error, count } = await query;
-    
-    if (error) {
-      // Se o erro for de tabela não existente, use dados simulados
-      if (error.code === '42P01') {
-        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
-        return processarDadosSimulados({ tipo, status, dataInicio, dataFim, categoria, busca, page, limit });
-      }
-      
-      console.error('Erro ao buscar transações:', error);
-      throw new Error('Não foi possível buscar as transações');
-    }
-    
-    const total = count || 0;
+    const total = transacoesFiltradas.length;
     const totalPages = Math.ceil(total / limit);
     
     return {
-      transacoes: data as Transacao[],
+      transacoes: transacoesPaginadas,
       total,
       totalPages
     };
   } catch (error) {
-    console.error('Erro ao buscar transações:', error);
-    // Fallback para dados simulados em caso de erro
-    return processarDadosSimulados({ tipo, status, dataInicio, dataFim, categoria, busca, page, limit });
+    console.error('Erro ao processar dados locais:', error);
+    return {
+      transacoes: [],
+      total: 0,
+      totalPages: 0
+    };
   }
-}
-
-// Função auxiliar para processar os dados simulados
-function processarDadosSimulados({
-  tipo,
-  status,
-  dataInicio,
-  dataFim,
-  categoria,
-  busca,
-  page = 1,
-  limit = 10
-}: {
-  tipo?: TransacaoTipo;
-  status?: TransacaoStatus;
-  dataInicio?: string;
-  dataFim?: string;
-  categoria?: string;
-  busca?: string;
-  page?: number;
-  limit?: number;
-}): {
-  transacoes: Transacao[];
-  total: number;
-  totalPages: number;
-} {
-  // Aplicar filtros aos dados simulados
-  let transacoesFiltradas = [...transacoesSimuladas];
-  
-  if (tipo) {
-    transacoesFiltradas = transacoesFiltradas.filter(t => t.tipo === tipo);
-  }
-  
-  if (status) {
-    transacoesFiltradas = transacoesFiltradas.filter(t => t.status === status);
-  }
-  
-  if (dataInicio) {
-    transacoesFiltradas = transacoesFiltradas.filter(t => t.data >= dataInicio);
-  }
-  
-  if (dataFim) {
-    transacoesFiltradas = transacoesFiltradas.filter(t => t.data <= dataFim);
-  }
-  
-  if (categoria) {
-    transacoesFiltradas = transacoesFiltradas.filter(t => t.categoria === categoria);
-  }
-  
-  if (busca) {
-    const termoBusca = busca.toLowerCase();
-    transacoesFiltradas = transacoesFiltradas.filter(t => 
-      t.descricao.toLowerCase().includes(termoBusca) || 
-      t.id.toLowerCase().includes(termoBusca) ||
-      (t.observacoes && t.observacoes.toLowerCase().includes(termoBusca))
-    );
-  }
-  
-  // Aplicar paginação
-  const total = transacoesFiltradas.length;
-  const totalPages = Math.ceil(total / limit);
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const transacoesPaginadas = transacoesFiltradas.slice(start, end);
-  
-  return {
-    transacoes: transacoesPaginadas,
-    total,
-    totalPages
-  };
 }
 
 /**
  * Busca uma transação pelo ID
  */
 export async function fetchTransacaoById(id: string): Promise<Transacao | null> {
-  if (usarDadosSimulados) {
-    console.warn('Supabase não está disponível, usando dados simulados');
-    return transacoesSimuladas.find(t => t.id === id) || null;
-  }
-  
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      // Se o erro for de tabela não existente, use dados simulados
-      if (error.code === '42P01') {
-        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
-        return transacoesSimuladas.find(t => t.id === id) || null;
+  // Tentar primeiro com o Supabase
+  if (supabase) {
+    try {
+      console.log('Tentando buscar transação do Supabase, ID:', id);
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        throw error;
       }
       
-      console.error('Erro ao buscar transação:', error);
-      throw new Error('Não foi possível buscar a transação');
+      console.log('Transação encontrada no Supabase:', data);
+      
+      // Converter do formato do Supabase para o formato da interface
+      return supabaseToTransacao(data as TransacaoSupabase);
+    } catch (error) {
+      console.error('Erro ao buscar transação do Supabase:', error);
+      console.log('Buscando nos dados locais...');
     }
-    
-    return data as Transacao;
-  } catch (error) {
-    console.error('Erro ao buscar transação:', error);
-    // Fallback para dados simulados em caso de erro
-    return transacoesSimuladas.find(t => t.id === id) || null;
+  } else {
+    console.log('Supabase não está disponível, buscando nos dados locais...');
   }
+  
+  // Fallback para dados locais
+  const transacao = localTransacoes.find(t => t.id === id);
+  return transacao || null;
 }
 
 /**
  * Cria uma nova transação
  */
 export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise<Transacao> {
-  if (usarDadosSimulados) {
-    console.warn('Supabase não está disponível, simulando criação de transação');
-    return criarTransacaoSimulada(transacao);
-  }
-  
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert([transacao])
-      .select()
-      .single();
+  // Tentar primeiro com o Supabase
+  if (supabase) {
+    try {
+      console.log('Tentando criar transação no Supabase:', transacao);
       
-    if (error) {
-      // Se o erro for de tabela não existente, use dados simulados
-      if (error.code === '42P01') {
-        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
-        return criarTransacaoSimulada(transacao);
+      // Converter para o formato do Supabase
+      const dadosSupabase = transacaoToSupabase(transacao);
+      
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .insert([dadosSupabase])
+        .select()
+        .single();
+        
+      if (error) {
+        throw error;
       }
       
-      console.error('Erro ao criar transação:', error);
-      throw new Error('Não foi possível criar a transação');
+      console.log('Transação criada com sucesso no Supabase:', data);
+      
+      // Converter de volta para o formato da interface
+      return supabaseToTransacao(data as TransacaoSupabase);
+    } catch (error) {
+      console.error('Erro ao criar transação no Supabase:', error);
+      console.log('Criando nos dados locais...');
     }
-    
-    return data as Transacao;
-  } catch (error) {
-    console.error('Erro ao criar transação:', error);
-    throw new Error('Não foi possível criar a transação');
+  } else {
+    console.log('Supabase não está disponível, criando nos dados locais...');
   }
-}
-
-/**
- * Função auxiliar para criar transação simulada
- */
-function criarTransacaoSimulada(transacao: Omit<Transacao, 'id'>): Transacao {
+  
+  // Fallback para dados locais
+  const id = `TRX${String(localTransacoes.length + 1).padStart(3, '0')}`;
+  
   const novaTransacao: Transacao = {
-    id: `TRX${(transacoesSimuladas.length + 1).toString().padStart(3, '0')}`,
+    id,
     ...transacao
   };
-  transacoesSimuladas.unshift(novaTransacao);
+  
+  localTransacoes.unshift(novaTransacao);
+  
+  // Persistir no localStorage
+  salvarDadosNoStorage();
+  
   return novaTransacao;
 }
 
@@ -427,51 +440,71 @@ function criarTransacaoSimulada(transacao: Omit<Transacao, 'id'>): Transacao {
  * Atualiza uma transação existente
  */
 export async function updateTransacao(id: string, transacao: Partial<Omit<Transacao, 'id'>>): Promise<Transacao> {
-  if (usarDadosSimulados) {
-    console.warn('Supabase não está disponível, simulando atualização de transação');
-    return atualizarTransacaoSimulada(id, transacao);
-  }
-  
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .update(transacao)
-      .eq('id', id)
-      .select()
-      .single();
+  // Tentar primeiro com o Supabase
+  if (supabase) {
+    try {
+      console.log('Tentando atualizar transação no Supabase, ID:', id);
       
-    if (error) {
-      // Se o erro for de tabela não existente, use dados simulados
-      if (error.code === '42P01') {
-        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
-        return atualizarTransacaoSimulada(id, transacao);
+      // Converter para o formato do Supabase
+      const dadosSupabase: Partial<TransacaoSupabase> = {};
+      
+      // Mapear manualmente cada campo para garantir a conversão correta
+      if (transacao.dataVencimento !== undefined) dadosSupabase.datavencimento = transacao.dataVencimento;
+      if (transacao.dataPagamento !== undefined) dadosSupabase.datapagamento = transacao.dataPagamento;
+      if (transacao.formaPagamento !== undefined) dadosSupabase.formapagamento = transacao.formaPagamento;
+      if (transacao.vinculoId !== undefined) dadosSupabase.vinculoid = transacao.vinculoId;
+      if (transacao.vinculoTipo !== undefined) dadosSupabase.vinculotipo = transacao.vinculoTipo;
+      
+      // Copiar os campos que têm o mesmo nome
+      if (transacao.descricao !== undefined) dadosSupabase.descricao = transacao.descricao;
+      if (transacao.valor !== undefined) dadosSupabase.valor = transacao.valor;
+      if (transacao.data !== undefined) dadosSupabase.data = transacao.data;
+      if (transacao.tipo !== undefined) dadosSupabase.tipo = transacao.tipo;
+      if (transacao.categoria !== undefined) dadosSupabase.categoria = transacao.categoria;
+      if (transacao.status !== undefined) dadosSupabase.status = transacao.status;
+      if (transacao.observacoes !== undefined) dadosSupabase.observacoes = transacao.observacoes;
+      if (transacao.comprovante !== undefined) dadosSupabase.comprovante = transacao.comprovante;
+      
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .update(dadosSupabase)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) {
+        throw error;
       }
       
-      console.error('Erro ao atualizar transação:', error);
-      throw new Error('Não foi possível atualizar a transação');
+      console.log('Transação atualizada com sucesso no Supabase:', data);
+      
+      // Converter de volta para o formato da interface
+      return supabaseToTransacao(data as TransacaoSupabase);
+    } catch (error) {
+      console.error('Erro ao atualizar transação no Supabase:', error);
+      console.log('Atualizando nos dados locais...');
     }
-    
-    return data as Transacao;
-  } catch (error) {
-    console.error('Erro ao atualizar transação:', error);
-    throw new Error('Não foi possível atualizar a transação');
+  } else {
+    console.log('Supabase não está disponível, atualizando nos dados locais...');
   }
-}
-
-/**
- * Função auxiliar para atualizar transação simulada
- */
-function atualizarTransacaoSimulada(id: string, transacao: Partial<Omit<Transacao, 'id'>>): Transacao {
-  const index = transacoesSimuladas.findIndex(t => t.id === id);
+  
+  // Fallback para dados locais
+  const index = localTransacoes.findIndex(t => t.id === id);
+  
   if (index === -1) {
-    throw new Error('Transação não encontrada');
+    throw new Error(`Transação com id ${id} não encontrada`);
   }
   
   const transacaoAtualizada = {
-    ...transacoesSimuladas[index],
+    ...localTransacoes[index],
     ...transacao
   };
-  transacoesSimuladas[index] = transacaoAtualizada;
+  
+  localTransacoes[index] = transacaoAtualizada;
+  
+  // Persistir no localStorage
+  salvarDadosNoStorage();
+  
   return transacaoAtualizada;
 }
 
@@ -479,43 +512,48 @@ function atualizarTransacaoSimulada(id: string, transacao: Partial<Omit<Transaca
  * Remove uma transação
  */
 export async function deleteTransacao(id: string): Promise<void> {
-  if (usarDadosSimulados) {
-    console.warn('Supabase não está disponível, simulando exclusão de transação');
-    return excluirTransacaoSimulada(id);
-  }
-  
-  try {
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      // Se o erro for de tabela não existente, use dados simulados
-      if (error.code === '42P01') {
-        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
-        return excluirTransacaoSimulada(id);
+  // Tentar primeiro com o Supabase
+  if (supabase) {
+    try {
+      console.log('Tentando excluir transação do Supabase, ID:', id);
+      const { error } = await supabase
+        .from('financial_transactions')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
       }
       
-      console.error('Erro ao excluir transação:', error);
-      throw new Error('Não foi possível excluir a transação');
+      console.log('Transação excluída com sucesso do Supabase');
+      
+      // Remover também dos dados locais se existir
+      const index = localTransacoes.findIndex(t => t.id === id);
+      if (index !== -1) {
+        localTransacoes.splice(index, 1);
+        salvarDadosNoStorage();
+      }
+      
+      return;
+    } catch (error) {
+      console.error('Erro ao excluir transação do Supabase:', error);
+      console.log('Excluindo dos dados locais...');
     }
-  } catch (error) {
-    console.error('Erro ao excluir transação:', error);
-    throw new Error('Não foi possível excluir a transação');
-  }
-}
-
-/**
- * Função auxiliar para excluir transação simulada
- */
-function excluirTransacaoSimulada(id: string): void {
-  const index = transacoesSimuladas.findIndex(t => t.id === id);
-  if (index === -1) {
-    throw new Error('Transação não encontrada');
+  } else {
+    console.log('Supabase não está disponível, excluindo dos dados locais...');
   }
   
-  transacoesSimuladas.splice(index, 1);
+  // Fallback para dados locais
+  const index = localTransacoes.findIndex(t => t.id === id);
+  
+  if (index === -1) {
+    throw new Error(`Transação com id ${id} não encontrada`);
+  }
+  
+  localTransacoes.splice(index, 1);
+  
+  // Persistir no localStorage
+  salvarDadosNoStorage();
 }
 
 /**
