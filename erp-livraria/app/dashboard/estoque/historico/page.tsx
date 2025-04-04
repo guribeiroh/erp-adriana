@@ -348,9 +348,6 @@ function HistoricoMovimentacoesContent() {
                         Motivo
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
-                        Venda
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
                         Responsável
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
@@ -393,18 +390,6 @@ function HistoricoMovimentacoesContent() {
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
                           {getNomeMotivo(movimentacao.type, movimentacao.reason)}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
-                          {movimentacao.sale_id ? (
-                            <Link 
-                              href={`/dashboard/vendas/${movimentacao.sale_id}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              Ver venda
-                            </Link>
-                          ) : (
-                            <span className="text-neutral-400">-</span>
-                          )}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
                           {movimentacao.responsible}
