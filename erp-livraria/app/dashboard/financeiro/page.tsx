@@ -464,13 +464,6 @@ function FinanceiroPage() {
                 <h3 className="mb-1 text-sm font-medium text-neutral-500">Ações Rápidas</h3>
                 <div className="mt-3 space-y-2">
                   <Link 
-                    href="/dashboard/financeiro/fluxo-caixa"
-                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
-                  >
-                    <ChartBar className="mr-2 h-4 w-4 text-neutral-500" />
-                    <span className="text-neutral-700">Fluxo de Caixa</span>
-                  </Link>
-                  <Link 
                     href="/dashboard/financeiro/contas-pagar"
                     className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
                   >
