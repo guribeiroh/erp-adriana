@@ -484,26 +484,19 @@ function FinanceiroPage() {
                     <ArrowUp className="mr-2 h-4 w-4 text-green-500" />
                     <span className="text-neutral-700">Contas a Receber</span>
                   </Link>
-                </div>
-              </div>
-              
-              {/* Botão de nova transação */}
-              <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-medium text-neutral-500">Nova Transação</h3>
-                <div className="space-y-2">
-                  <Link
+                  <Link 
                     href="/dashboard/financeiro/nova-receita"
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
                   >
-                    <Plus className="h-4 w-4" />
-                    Nova Receita
+                    <Plus className="mr-2 h-4 w-4 text-green-500" />
+                    <span className="text-neutral-700">Nova Receita</span>
                   </Link>
-                  <Link
+                  <Link 
                     href="/dashboard/financeiro/nova-despesa"
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
                   >
-                    <Plus className="h-4 w-4" />
-                    Nova Despesa
+                    <Plus className="mr-2 h-4 w-4 text-red-500" />
+                    <span className="text-neutral-700">Nova Despesa</span>
                   </Link>
                 </div>
               </div>
