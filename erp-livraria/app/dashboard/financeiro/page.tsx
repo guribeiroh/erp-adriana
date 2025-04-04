@@ -245,17 +245,17 @@ export default function FinanceiroPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   
-  // Carregar transações do serviço
+  // Efeito para carregar transações do serviço
   useEffect(() => {
     async function carregarTransacoes() {
       try {
         setCarregando(true);
         setErro(null);
         
-        const data = await fetchTransacoes();
-        setTransacoes(data);
+        const result = await fetchTransacoes({});
+        setTransacoes(result.transacoes);
         
-        console.log('Transações carregadas:', data.length);
+        console.log('Transações carregadas:', result.transacoes.length);
       } catch (error) {
         console.error("Erro ao carregar transações:", error);
         setErro(error instanceof Error ? error.message : "Erro desconhecido");
