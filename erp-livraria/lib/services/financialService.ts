@@ -19,10 +19,34 @@ export interface Transacao {
   observacoes?: string;
   vinculoId?: string;
   vinculoTipo?: "venda" | "compra" | "outro";
+  venda?: string; // ID da venda relacionada
+  comprovante?: string; // URL do comprovante
 }
 
-// Verifica se o cliente Supabase está disponível
-const isSupabaseAvailable = !!supabase;
+// Verifica se o cliente Supabase está disponível e determina se deve usar dados simulados
+function deveFallbackParaDadosSimulados() {
+  try {
+    // Verifica se o Supabase está definido
+    if (!supabase) {
+      console.warn('Cliente Supabase não está disponível');
+      return true;
+    }
+
+    // Verifica se estamos em ambiente de desenvolvimento local sem Supabase
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.info('Ambiente de desenvolvimento local detectado, usando dados simulados');
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.warn('Erro ao verificar disponibilidade do Supabase, usando dados simulados', error);
+    return true;
+  }
+}
+
+// Determina se deve usar dados simulados
+const usarDadosSimulados = deveFallbackParaDadosSimulados();
 
 // Dados simulados para quando o Supabase não estiver disponível
 const transacoesSimuladas: Transacao[] = [
@@ -179,53 +203,9 @@ export async function fetchTransacoes({
   totalPages: number;
 }> {
   // Se Supabase não estiver disponível, retorna dados simulados
-  if (!isSupabaseAvailable) {
+  if (usarDadosSimulados) {
     console.warn('Supabase não está disponível, usando dados simulados para transações financeiras');
-    
-    // Aplicar filtros aos dados simulados
-    let transacoesFiltradas = [...transacoesSimuladas];
-    
-    if (tipo) {
-      transacoesFiltradas = transacoesFiltradas.filter(t => t.tipo === tipo);
-    }
-    
-    if (status) {
-      transacoesFiltradas = transacoesFiltradas.filter(t => t.status === status);
-    }
-    
-    if (dataInicio) {
-      transacoesFiltradas = transacoesFiltradas.filter(t => t.data >= dataInicio);
-    }
-    
-    if (dataFim) {
-      transacoesFiltradas = transacoesFiltradas.filter(t => t.data <= dataFim);
-    }
-    
-    if (categoria) {
-      transacoesFiltradas = transacoesFiltradas.filter(t => t.categoria === categoria);
-    }
-    
-    if (busca) {
-      const termoBusca = busca.toLowerCase();
-      transacoesFiltradas = transacoesFiltradas.filter(t => 
-        t.descricao.toLowerCase().includes(termoBusca) || 
-        t.id.toLowerCase().includes(termoBusca) ||
-        (t.observacoes && t.observacoes.toLowerCase().includes(termoBusca))
-      );
-    }
-    
-    // Aplicar paginação
-    const total = transacoesFiltradas.length;
-    const totalPages = Math.ceil(total / limit);
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const transacoesPaginadas = transacoesFiltradas.slice(start, end);
-    
-    return {
-      transacoes: transacoesPaginadas,
-      total,
-      totalPages
-    };
+    return processarDadosSimulados({ tipo, status, dataInicio, dataFim, categoria, busca, page, limit });
   }
   
   // Implementação real com Supabase
@@ -267,6 +247,12 @@ export async function fetchTransacoes({
     const { data, error, count } = await query;
     
     if (error) {
+      // Se o erro for de tabela não existente, use dados simulados
+      if (error.code === '42P01') {
+        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
+        return processarDadosSimulados({ tipo, status, dataInicio, dataFim, categoria, busca, page, limit });
+      }
+      
       console.error('Erro ao buscar transações:', error);
       throw new Error('Não foi possível buscar as transações');
     }
@@ -281,26 +267,86 @@ export async function fetchTransacoes({
     };
   } catch (error) {
     console.error('Erro ao buscar transações:', error);
-    
     // Fallback para dados simulados em caso de erro
-    return fetchTransacoes({
-      tipo,
-      status,
-      dataInicio,
-      dataFim,
-      categoria,
-      busca,
-      page,
-      limit
-    });
+    return processarDadosSimulados({ tipo, status, dataInicio, dataFim, categoria, busca, page, limit });
   }
+}
+
+// Função auxiliar para processar os dados simulados
+function processarDadosSimulados({
+  tipo,
+  status,
+  dataInicio,
+  dataFim,
+  categoria,
+  busca,
+  page = 1,
+  limit = 10
+}: {
+  tipo?: TransacaoTipo;
+  status?: TransacaoStatus;
+  dataInicio?: string;
+  dataFim?: string;
+  categoria?: string;
+  busca?: string;
+  page?: number;
+  limit?: number;
+}): {
+  transacoes: Transacao[];
+  total: number;
+  totalPages: number;
+} {
+  // Aplicar filtros aos dados simulados
+  let transacoesFiltradas = [...transacoesSimuladas];
+  
+  if (tipo) {
+    transacoesFiltradas = transacoesFiltradas.filter(t => t.tipo === tipo);
+  }
+  
+  if (status) {
+    transacoesFiltradas = transacoesFiltradas.filter(t => t.status === status);
+  }
+  
+  if (dataInicio) {
+    transacoesFiltradas = transacoesFiltradas.filter(t => t.data >= dataInicio);
+  }
+  
+  if (dataFim) {
+    transacoesFiltradas = transacoesFiltradas.filter(t => t.data <= dataFim);
+  }
+  
+  if (categoria) {
+    transacoesFiltradas = transacoesFiltradas.filter(t => t.categoria === categoria);
+  }
+  
+  if (busca) {
+    const termoBusca = busca.toLowerCase();
+    transacoesFiltradas = transacoesFiltradas.filter(t => 
+      t.descricao.toLowerCase().includes(termoBusca) || 
+      t.id.toLowerCase().includes(termoBusca) ||
+      (t.observacoes && t.observacoes.toLowerCase().includes(termoBusca))
+    );
+  }
+  
+  // Aplicar paginação
+  const total = transacoesFiltradas.length;
+  const totalPages = Math.ceil(total / limit);
+  const start = (page - 1) * limit;
+  const end = start + limit;
+  const transacoesPaginadas = transacoesFiltradas.slice(start, end);
+  
+  return {
+    transacoes: transacoesPaginadas,
+    total,
+    totalPages
+  };
 }
 
 /**
  * Busca uma transação pelo ID
  */
 export async function fetchTransacaoById(id: string): Promise<Transacao | null> {
-  if (!isSupabaseAvailable) {
+  if (usarDadosSimulados) {
     console.warn('Supabase não está disponível, usando dados simulados');
     return transacoesSimuladas.find(t => t.id === id) || null;
   }
@@ -313,6 +359,12 @@ export async function fetchTransacaoById(id: string): Promise<Transacao | null> 
       .single();
       
     if (error) {
+      // Se o erro for de tabela não existente, use dados simulados
+      if (error.code === '42P01') {
+        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
+        return transacoesSimuladas.find(t => t.id === id) || null;
+      }
+      
       console.error('Erro ao buscar transação:', error);
       throw new Error('Não foi possível buscar a transação');
     }
@@ -329,14 +381,9 @@ export async function fetchTransacaoById(id: string): Promise<Transacao | null> 
  * Cria uma nova transação
  */
 export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise<Transacao> {
-  if (!isSupabaseAvailable) {
+  if (usarDadosSimulados) {
     console.warn('Supabase não está disponível, simulando criação de transação');
-    const novaTransacao: Transacao = {
-      id: `TRX${transacoesSimuladas.length + 1}`.padStart(6, '0'),
-      ...transacao
-    };
-    transacoesSimuladas.unshift(novaTransacao);
-    return novaTransacao;
+    return criarTransacaoSimulada(transacao);
   }
   
   try {
@@ -347,6 +394,12 @@ export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise
       .single();
       
     if (error) {
+      // Se o erro for de tabela não existente, use dados simulados
+      if (error.code === '42P01') {
+        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
+        return criarTransacaoSimulada(transacao);
+      }
+      
       console.error('Erro ao criar transação:', error);
       throw new Error('Não foi possível criar a transação');
     }
@@ -359,22 +412,24 @@ export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise
 }
 
 /**
+ * Função auxiliar para criar transação simulada
+ */
+function criarTransacaoSimulada(transacao: Omit<Transacao, 'id'>): Transacao {
+  const novaTransacao: Transacao = {
+    id: `TRX${(transacoesSimuladas.length + 1).toString().padStart(3, '0')}`,
+    ...transacao
+  };
+  transacoesSimuladas.unshift(novaTransacao);
+  return novaTransacao;
+}
+
+/**
  * Atualiza uma transação existente
  */
 export async function updateTransacao(id: string, transacao: Partial<Omit<Transacao, 'id'>>): Promise<Transacao> {
-  if (!isSupabaseAvailable) {
+  if (usarDadosSimulados) {
     console.warn('Supabase não está disponível, simulando atualização de transação');
-    const index = transacoesSimuladas.findIndex(t => t.id === id);
-    if (index === -1) {
-      throw new Error('Transação não encontrada');
-    }
-    
-    const transacaoAtualizada = {
-      ...transacoesSimuladas[index],
-      ...transacao
-    };
-    transacoesSimuladas[index] = transacaoAtualizada;
-    return transacaoAtualizada;
+    return atualizarTransacaoSimulada(id, transacao);
   }
   
   try {
@@ -386,6 +441,12 @@ export async function updateTransacao(id: string, transacao: Partial<Omit<Transa
       .single();
       
     if (error) {
+      // Se o erro for de tabela não existente, use dados simulados
+      if (error.code === '42P01') {
+        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
+        return atualizarTransacaoSimulada(id, transacao);
+      }
+      
       console.error('Erro ao atualizar transação:', error);
       throw new Error('Não foi possível atualizar a transação');
     }
@@ -398,18 +459,29 @@ export async function updateTransacao(id: string, transacao: Partial<Omit<Transa
 }
 
 /**
+ * Função auxiliar para atualizar transação simulada
+ */
+function atualizarTransacaoSimulada(id: string, transacao: Partial<Omit<Transacao, 'id'>>): Transacao {
+  const index = transacoesSimuladas.findIndex(t => t.id === id);
+  if (index === -1) {
+    throw new Error('Transação não encontrada');
+  }
+  
+  const transacaoAtualizada = {
+    ...transacoesSimuladas[index],
+    ...transacao
+  };
+  transacoesSimuladas[index] = transacaoAtualizada;
+  return transacaoAtualizada;
+}
+
+/**
  * Remove uma transação
  */
 export async function deleteTransacao(id: string): Promise<void> {
-  if (!isSupabaseAvailable) {
+  if (usarDadosSimulados) {
     console.warn('Supabase não está disponível, simulando exclusão de transação');
-    const index = transacoesSimuladas.findIndex(t => t.id === id);
-    if (index === -1) {
-      throw new Error('Transação não encontrada');
-    }
-    
-    transacoesSimuladas.splice(index, 1);
-    return;
+    return excluirTransacaoSimulada(id);
   }
   
   try {
@@ -419,6 +491,12 @@ export async function deleteTransacao(id: string): Promise<void> {
       .eq('id', id);
       
     if (error) {
+      // Se o erro for de tabela não existente, use dados simulados
+      if (error.code === '42P01') {
+        console.warn('Tabela "transactions" não existe no Supabase, usando dados simulados');
+        return excluirTransacaoSimulada(id);
+      }
+      
       console.error('Erro ao excluir transação:', error);
       throw new Error('Não foi possível excluir a transação');
     }
@@ -426,6 +504,18 @@ export async function deleteTransacao(id: string): Promise<void> {
     console.error('Erro ao excluir transação:', error);
     throw new Error('Não foi possível excluir a transação');
   }
+}
+
+/**
+ * Função auxiliar para excluir transação simulada
+ */
+function excluirTransacaoSimulada(id: string): void {
+  const index = transacoesSimuladas.findIndex(t => t.id === id);
+  if (index === -1) {
+    throw new Error('Transação não encontrada');
+  }
+  
+  transacoesSimuladas.splice(index, 1);
 }
 
 /**
@@ -438,43 +528,55 @@ export async function obterResumoFinanceiro(dataInicio?: string, dataFim?: strin
   receitasPorCategoria: Record<string, number>;
   despesasPorCategoria: Record<string, number>;
 }> {
-  // Buscar todas as transações do período
-  const { transacoes } = await fetchTransacoes({
-    dataInicio,
-    dataFim,
-    limit: 1000 // Buscar um número grande para ter todas as transações do período
-  });
-  
-  // Calcular totais
-  const totalReceitas = transacoes
-    .filter(t => t.tipo === 'receita' && t.status !== 'cancelada')
-    .reduce((sum, t) => sum + t.valor, 0);
-    
-  const totalDespesas = transacoes
-    .filter(t => t.tipo === 'despesa' && t.status !== 'cancelada')
-    .reduce((sum, t) => sum + t.valor, 0);
-    
-  const saldo = totalReceitas - totalDespesas;
-  
-  // Calcular totais por categoria
-  const receitasPorCategoria: Record<string, number> = {};
-  const despesasPorCategoria: Record<string, number> = {};
-  
-  transacoes
-    .filter(t => t.status !== 'cancelada')
-    .forEach(t => {
-      if (t.tipo === 'receita') {
-        receitasPorCategoria[t.categoria] = (receitasPorCategoria[t.categoria] || 0) + t.valor;
-      } else {
-        despesasPorCategoria[t.categoria] = (despesasPorCategoria[t.categoria] || 0) + t.valor;
-      }
+  try {
+    // Buscar todas as transações do período
+    const { transacoes } = await fetchTransacoes({
+      dataInicio,
+      dataFim,
+      limit: 1000 // Buscar um número grande para ter todas as transações do período
     });
-  
-  return {
-    totalReceitas,
-    totalDespesas,
-    saldo,
-    receitasPorCategoria,
-    despesasPorCategoria
-  };
+    
+    // Calcular totais
+    const totalReceitas = transacoes
+      .filter(t => t.tipo === 'receita' && t.status !== 'cancelada')
+      .reduce((sum, t) => sum + t.valor, 0);
+      
+    const totalDespesas = transacoes
+      .filter(t => t.tipo === 'despesa' && t.status !== 'cancelada')
+      .reduce((sum, t) => sum + t.valor, 0);
+      
+    const saldo = totalReceitas - totalDespesas;
+    
+    // Calcular totais por categoria
+    const receitasPorCategoria: Record<string, number> = {};
+    const despesasPorCategoria: Record<string, number> = {};
+    
+    transacoes
+      .filter(t => t.status !== 'cancelada')
+      .forEach(t => {
+        if (t.tipo === 'receita') {
+          receitasPorCategoria[t.categoria] = (receitasPorCategoria[t.categoria] || 0) + t.valor;
+        } else {
+          despesasPorCategoria[t.categoria] = (despesasPorCategoria[t.categoria] || 0) + t.valor;
+        }
+      });
+    
+    return {
+      totalReceitas,
+      totalDespesas,
+      saldo,
+      receitasPorCategoria,
+      despesasPorCategoria
+    };
+  } catch (error) {
+    console.error('Erro ao obter resumo financeiro:', error);
+    // Em caso de erro, retornar valores zerados
+    return {
+      totalReceitas: 0,
+      totalDespesas: 0,
+      saldo: 0,
+      receitasPorCategoria: {},
+      despesasPorCategoria: {}
+    };
+  }
 } 
