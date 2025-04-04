@@ -409,128 +409,88 @@ function FinanceiroPage() {
         </div>
       ) : (
         <div>
-          <div className="mb-6 grid gap-6 lg:grid-cols-4">
+          <div className="mb-6 grid gap-6">
             {/* Cards de Resumo */}
-            <div className="grid gap-6 lg:col-span-3">
-              <div className="grid gap-6 sm:grid-cols-3">
-                {/* Saldo */}
-                <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-                  <h3 className="mb-2 text-sm font-medium text-neutral-500">Saldo Atual</h3>
-                  <p className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatarValor(saldoAtual)}
-                  </p>
-                  <div className="mt-3 pt-3 border-t border-neutral-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-neutral-500">Saldo Previsto:</span>
-                      <span className={`text-sm font-medium ${saldoPrevisto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatarValor(saldoPrevisto)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Receitas */}
-                <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-                  <h3 className="mb-2 text-sm font-medium text-neutral-500">Receitas</h3>
-                  <p className="text-2xl font-bold text-green-600">
-                    {formatarValor(totalReceitasConfirmadas)}
-                  </p>
-                  <div className="mt-3 pt-3 border-t border-neutral-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-neutral-500">A receber:</span>
-                      <span className="text-sm font-medium text-green-600">
-                        {formatarValor(totalReceitasPendentes)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Despesas */}
-                <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-                  <h3 className="mb-2 text-sm font-medium text-neutral-500">Despesas</h3>
-                  <p className="text-2xl font-bold text-red-600">
-                    {formatarValor(totalDespesasConfirmadas)}
-                  </p>
-                  <div className="mt-3 pt-3 border-t border-neutral-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-neutral-500">A pagar:</span>
-                      <span className="text-sm font-medium text-red-600">
-                        {formatarValor(totalDespesasPendentes)}
-                      </span>
-                    </div>
+            <div className="grid gap-6 sm:grid-cols-3">
+              {/* Saldo */}
+              <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-2 text-sm font-medium text-neutral-500">Saldo Atual</h3>
+                <p className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatarValor(saldoAtual)}
+                </p>
+                <div className="mt-3 pt-3 border-t border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">Saldo Previsto:</span>
+                    <span className={`text-sm font-medium ${saldoPrevisto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatarValor(saldoPrevisto)}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Ações rápidas */}
-            <div className="space-y-6">
-              {/* Menu de ações */}
-              <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-                <h3 className="mb-1 text-sm font-medium text-neutral-500">Ações Rápidas</h3>
-                <div className="mt-3 space-y-2">
-                  <Link 
-                    href="/dashboard/financeiro/contas-pagar"
-                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
-                  >
-                    <ArrowDown className="mr-2 h-4 w-4 text-red-500" />
-                    <span className="text-neutral-700">Contas a Pagar</span>
-                  </Link>
-                  <Link 
-                    href="/dashboard/financeiro/contas-receber"
-                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
-                  >
-                    <ArrowUp className="mr-2 h-4 w-4 text-green-500" />
-                    <span className="text-neutral-700">Contas a Receber</span>
-                  </Link>
-                  <Link 
-                    href="/dashboard/financeiro/nova-receita"
-                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
-                  >
-                    <Plus className="mr-2 h-4 w-4 text-green-500" />
-                    <span className="text-neutral-700">Nova Receita</span>
-                  </Link>
-                  <Link 
-                    href="/dashboard/financeiro/nova-despesa"
-                    className="flex items-center rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
-                  >
-                    <Plus className="mr-2 h-4 w-4 text-red-500" />
-                    <span className="text-neutral-700">Nova Despesa</span>
-                  </Link>
+              
+              {/* Receitas */}
+              <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-2 text-sm font-medium text-neutral-500">Receitas</h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatarValor(totalReceitasConfirmadas)}
+                </p>
+                <div className="mt-3 pt-3 border-t border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">A receber:</span>
+                    <span className="text-sm font-medium text-green-600">
+                      {formatarValor(totalReceitasPendentes)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Despesas */}
+              <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-2 text-sm font-medium text-neutral-500">Despesas</h3>
+                <p className="text-2xl font-bold text-red-600">
+                  {formatarValor(totalDespesasConfirmadas)}
+                </p>
+                <div className="mt-3 pt-3 border-t border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">A pagar:</span>
+                    <span className="text-sm font-medium text-red-600">
+                      {formatarValor(totalDespesasPendentes)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           
-          {/* Lista de transações */}
-          <div className="mt-6">
-            <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <h2 className="text-xl font-semibold text-neutral-900">Lista de Transações</h2>
-              
-              {/* Ações em lote e pesquisa */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex-grow sm:max-w-[240px]">
-                  <input
-                    type="text"
-                    placeholder="Pesquisar transações..."
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                  />
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                </div>
-                <Link
-                  href="/dashboard/financeiro/relatorios"
-                  className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">Relatórios</span>
-                </Link>
-              </div>
-            </div>
+          {/* Lista de transações e ações rápidas */}
+          <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <h2 className="text-xl font-semibold text-neutral-900">Lista de Transações</h2>
             
-            {/* Filtros */}
-            <div className="mb-4 flex flex-wrap gap-2">
+            {/* Ações em lote e pesquisa */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-grow sm:max-w-[240px]">
+                <input
+                  type="text"
+                  placeholder="Pesquisar transações..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              </div>
+              <Link
+                href="/dashboard/financeiro/relatorios"
+                className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Relatórios</span>
+              </Link>
+            </div>
+          </div>
+          
+          {/* Filtros e ações rápidas */}
+          <div className="mb-4 flex flex-wrap justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value as "todos" | TransacaoTipo)}
@@ -564,111 +524,145 @@ function FinanceiroPage() {
               </select>
             </div>
             
-            {/* Tabela de transações */}
-            <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left">
-                  <thead className="border-b border-neutral-200 bg-neutral-50">
-                    <tr>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Data</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Descrição</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Categoria</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Valor</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Status</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200">
-                    {transacoesFiltradas.length > 0 ? (
-                      transacoesFiltradas.map((transacao) => (
-                        <tr key={transacao.id} className="hover:bg-neutral-50">
-                          <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-900">
-                            {formatarData(transacao.data)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-900">
-                            <div>
-                              <p className="font-medium">{transacao.descricao}</p>
-                              {transacao.dataVencimento && transacao.status === 'pendente' && (
-                                <p className="text-xs text-neutral-500">
-                                  Vence: {formatarData(transacao.dataVencimento)}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
-                            {transacao.categoria}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-sm font-medium">
-                            <span className={transacao.tipo === 'receita' ? 'text-green-600' : 'text-red-600'}>
-                              {transacao.tipo === 'receita' ? '+' : '-'}{formatarValor(transacao.valor)}
-                            </span>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-sm">
-                            <StatusBadge status={transacao.status} />
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
-                            <div className="flex items-center gap-2">
+            {/* Ações rápidas em linha */}
+            <div className="flex gap-2">
+              <Link 
+                href="/dashboard/financeiro/nova-receita"
+                className="inline-flex items-center rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                Nova Receita
+              </Link>
+              <Link 
+                href="/dashboard/financeiro/nova-despesa"
+                className="inline-flex items-center rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                Nova Despesa
+              </Link>
+              <Link 
+                href="/dashboard/financeiro/contas-pagar"
+                className="inline-flex items-center rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                title="Contas a Pagar"
+              >
+                <ArrowDown className="h-4 w-4 text-red-500" />
+                <span className="hidden lg:ml-1 lg:inline">Contas a Pagar</span>
+              </Link>
+              <Link 
+                href="/dashboard/financeiro/contas-receber"
+                className="inline-flex items-center rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                title="Contas a Receber"
+              >
+                <ArrowUp className="h-4 w-4 text-green-500" />
+                <span className="hidden lg:ml-1 lg:inline">Contas a Receber</span>
+              </Link>
+            </div>
+          </div>
+          
+          {/* Tabela de transações */}
+          <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead className="border-b border-neutral-200 bg-neutral-50">
+                  <tr>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Data</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Descrição</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Categoria</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Valor</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Status</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {transacoesFiltradas.length > 0 ? (
+                    transacoesFiltradas.map((transacao) => (
+                      <tr key={transacao.id} className="hover:bg-neutral-50">
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-900">
+                          {formatarData(transacao.data)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-900">
+                          <div>
+                            <p className="font-medium">{transacao.descricao}</p>
+                            {transacao.dataVencimento && transacao.status === 'pendente' && (
+                              <p className="text-xs text-neutral-500">
+                                Vence: {formatarData(transacao.dataVencimento)}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
+                          {transacao.categoria}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm font-medium">
+                          <span className={transacao.tipo === 'receita' ? 'text-green-600' : 'text-red-600'}>
+                            {transacao.tipo === 'receita' ? '+' : '-'}{formatarValor(transacao.valor)}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm">
+                          <StatusBadge status={transacao.status} />
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/dashboard/financeiro/${transacao.id}`}
+                              className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600"
+                              title="Ver detalhes"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Link>
+                            {transacao.status !== "cancelada" && (
                               <Link
-                                href={`/dashboard/financeiro/${transacao.id}`}
+                                href={`/dashboard/financeiro/${transacao.id}/editar`}
                                 className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600"
-                                title="Ver detalhes"
+                                title="Editar"
                               >
-                                <FileText className="h-4 w-4" />
+                                <Coins className="h-4 w-4" />
                               </Link>
-                              {transacao.status !== "cancelada" && (
-                                <Link
-                                  href={`/dashboard/financeiro/${transacao.id}/editar`}
-                                  className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600"
-                                  title="Editar"
-                                >
-                                  <Coins className="h-4 w-4" />
-                                </Link>
-                              )}
-                              <button
-                                className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600"
-                                title="Imprimir comprovante"
-                              >
-                                <Receipt className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-neutral-500">
-                          Nenhuma transação encontrada com os filtros selecionados.
+                            )}
+                            <button
+                              className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600"
+                              title="Imprimir comprovante"
+                            >
+                              <Receipt className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-neutral-500">
+                        Nenhuma transação encontrada com os filtros selecionados.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Paginação simplificada */}
+            <div className="flex items-center justify-between border-t border-neutral-200 bg-neutral-50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-neutral-700">
+                  Exibindo <span className="font-medium">{transacoesFiltradas.length}</span> transações
+                </p>
               </div>
               
-              {/* Paginação simplificada */}
-              <div className="flex items-center justify-between border-t border-neutral-200 bg-neutral-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-neutral-700">
-                    Exibindo <span className="font-medium">{transacoesFiltradas.length}</span> transações
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 bg-white px-3 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400"
-                    disabled
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Anterior
-                  </button>
-                  <button
-                    className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 bg-white px-3 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400"
-                    disabled
-                  >
-                    Próxima
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 bg-white px-3 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400"
+                  disabled
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </button>
+                <button
+                  className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 bg-white px-3 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400"
+                  disabled
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
