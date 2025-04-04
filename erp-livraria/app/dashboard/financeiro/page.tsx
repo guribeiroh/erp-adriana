@@ -317,8 +317,11 @@ function FinanceiroPage() {
   };
   
   // Formatador de valor monetário
-  const formatarValor = (valor: number) => {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const formatarValor = (valor: number): string => {
+    return valor.toLocaleString('pt-BR', { 
+      style: 'currency', 
+      currency: 'BRL' 
+    });
   };
   
   // Efeito para filtrar e ordenar transações
@@ -458,13 +461,58 @@ function FinanceiroPage() {
                 {/* Painel de gráficos */}
                 <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm lg:col-span-2">
                   <h3 className="mb-4 font-medium text-neutral-900">Visão Geral Financeira</h3>
-                  <div className="flex h-64 items-center justify-center border-t border-neutral-200 pt-5">
-                    <div className="text-center text-neutral-600">
-                      <ChartPie className="mx-auto mb-2 h-12 w-12 text-neutral-400" />
-                      <p>Gráfico de análise financeira</p>
-                      <p className="mt-1 text-sm text-neutral-500">
-                        (Uma implementação real incluiria gráficos de receitas x despesas)
-                      </p>
+                  <div className="flex flex-col items-center justify-center p-10 rounded-lg border border-neutral-200 bg-white">
+                    <div className="mb-4 h-24 w-24 text-neutral-300">
+                      <ChartBar className="h-full w-full" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-neutral-800">Resumo Financeiro</h3>
+                      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {/* Saldo */}
+                        <div className="rounded-lg bg-white p-4 shadow-sm border border-neutral-200">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              <CircleDollarSign className={`h-5 w-5 ${saldoAtual >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm font-medium text-neutral-500">Saldo</p>
+                              <p className={`text-lg font-semibold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatarValor(saldoAtual)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Receitas */}
+                        <div className="rounded-lg bg-white p-4 shadow-sm border border-neutral-200">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              <TrendingUp className="h-5 w-5 text-green-500" />
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm font-medium text-neutral-500">Receitas</p>
+                              <p className="text-lg font-semibold text-green-600">
+                                {formatarValor(totalReceitasConfirmadas)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Despesas */}
+                        <div className="rounded-lg bg-white p-4 shadow-sm border border-neutral-200">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              <TrendingDown className="h-5 w-5 text-red-500" />
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm font-medium text-neutral-500">Despesas</p>
+                              <p className="text-lg font-semibold text-red-600">
+                                {formatarValor(totalDespesasConfirmadas)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
