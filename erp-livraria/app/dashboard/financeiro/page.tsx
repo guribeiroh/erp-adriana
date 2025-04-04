@@ -412,46 +412,52 @@ function FinanceiroPage() {
           <div className="mb-6 grid gap-6 lg:grid-cols-4">
             {/* Cards de Resumo */}
             <div className="grid gap-6 lg:col-span-3">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-6 sm:grid-cols-3">
                 {/* Saldo */}
-                <div className="col-span-2 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-                  <h3 className="mb-1 text-sm font-medium text-neutral-600">Saldo Atual</h3>
-                  <p className={`text-2xl font-semibold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+                  <h3 className="mb-2 text-sm font-medium text-neutral-500">Saldo Atual</h3>
+                  <p className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatarValor(saldoAtual)}
                   </p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-neutral-600">Saldo Previsto:</span>
-                    <span className={`text-sm font-medium ${saldoPrevisto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatarValor(saldoPrevisto)}
-                    </span>
+                  <div className="mt-3 pt-3 border-t border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-neutral-500">Saldo Previsto:</span>
+                      <span className={`text-sm font-medium ${saldoPrevisto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatarValor(saldoPrevisto)}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
                 {/* Receitas */}
-                <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-                  <h3 className="mb-1 text-sm font-medium text-neutral-600">Receitas</h3>
-                  <p className="text-2xl font-semibold text-green-600">
+                <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+                  <h3 className="mb-2 text-sm font-medium text-neutral-500">Receitas</h3>
+                  <p className="text-2xl font-bold text-green-600">
                     {formatarValor(totalReceitasConfirmadas)}
                   </p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-neutral-600">A receber:</span>
-                    <span className="text-sm font-medium text-green-600">
-                      {formatarValor(totalReceitasPendentes)}
-                    </span>
+                  <div className="mt-3 pt-3 border-t border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-neutral-500">A receber:</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {formatarValor(totalReceitasPendentes)}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
                 {/* Despesas */}
-                <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-                  <h3 className="mb-1 text-sm font-medium text-neutral-600">Despesas</h3>
-                  <p className="text-2xl font-semibold text-red-600">
+                <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+                  <h3 className="mb-2 text-sm font-medium text-neutral-500">Despesas</h3>
+                  <p className="text-2xl font-bold text-red-600">
                     {formatarValor(totalDespesasConfirmadas)}
                   </p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-neutral-600">A pagar:</span>
-                    <span className="text-sm font-medium text-red-600">
-                      {formatarValor(totalDespesasPendentes)}
-                    </span>
+                  <div className="mt-3 pt-3 border-t border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-neutral-500">A pagar:</span>
+                      <span className="text-sm font-medium text-red-600">
+                        {formatarValor(totalDespesasPendentes)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
