@@ -26,7 +26,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  LineChart,
+  Line
 } from 'recharts';
 
 // Cores para gráfico de pizza
@@ -293,13 +295,20 @@ export default function RelatorioVendasPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Vendas por Data</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportData.salesByDate}>
+                  <LineChart data={reportData.salesByDate}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="value" fill="#6366F1" />
-                  </BarChart>
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#6366F1" 
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
