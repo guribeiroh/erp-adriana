@@ -14,6 +14,7 @@ export interface StockMovement {
   responsible: string;
   created_at: string;
   updated_at?: string;
+  sale_id?: string; // Referência à venda que gerou a movimentação
 }
 
 // Tipo para criação de uma movimentação de estoque
@@ -137,6 +138,7 @@ class StockService extends BaseService<StockMovement> {
   async getMovementsWithBooks(limit: number = 100): Promise<ServiceResponse<StockMovementWithBook[]>> {
     try {
       if (shouldUseRealData() && supabase) {
+        // Modificar a consulta para extrair a ID da venda das notas, se existir
         const { data, error } = await supabase
           .from('stock_movements')
           .select('*, book:books(*)')
@@ -145,8 +147,27 @@ class StockService extends BaseService<StockMovement> {
 
         if (error) throw error;
 
+        // Processar os dados para extrair os IDs de venda das notas
+        const processedData = data?.map(movement => {
+          const processedMovement: StockMovementWithBook = {
+            ...movement,
+            sale_id: undefined
+          };
+          
+          // Verifica se a movimentação é do tipo 'saida' e razão 'venda'
+          if (movement.type === 'saida' && movement.reason === 'venda' && movement.notes) {
+            // Tenta extrair o ID da venda das notas (formato "Venda #id-da-venda")
+            const vendaMatch = movement.notes.match(/Venda #([a-zA-Z0-9-]+)/);
+            if (vendaMatch && vendaMatch[1]) {
+              processedMovement.sale_id = vendaMatch[1];
+            }
+          }
+          
+          return processedMovement;
+        });
+
         return {
-          data: data as StockMovementWithBook[],
+          data: processedData as StockMovementWithBook[],
           error: null,
           status: 'success',
         };
@@ -154,8 +175,31 @@ class StockService extends BaseService<StockMovement> {
         // No ambiente de desenvolvimento, não é possível popular os dados de livros
         // Então retornamos apenas as movimentações
         const { data: movements } = await this.getAll();
+        
+        // Processar para adicionar sale_id simulado
+        const processedMovements = movements?.map(movement => {
+          const processedMovement: StockMovementWithBook = {
+            ...movement,
+            sale_id: undefined
+          };
+          
+          if (movement.type === 'saida' && movement.reason === 'venda' && movement.notes) {
+            // Para ambiente de desenvolvimento, simular sale_id
+            if (movement.notes.includes('simulada')) {
+              processedMovement.sale_id = `simulated-${Date.now()}`;
+            } else {
+              const vendaMatch = movement.notes.match(/Venda #([a-zA-Z0-9-]+)/);
+              if (vendaMatch && vendaMatch[1]) {
+                processedMovement.sale_id = vendaMatch[1];
+              }
+            }
+          }
+          
+          return processedMovement;
+        });
+        
         return {
-          data: movements as StockMovementWithBook[],
+          data: processedMovements as StockMovementWithBook[],
           error: null,
           status: 'success',
         };
@@ -182,17 +226,58 @@ class StockService extends BaseService<StockMovement> {
 
         if (error) throw error;
 
+        // Processar os dados para extrair os IDs de venda das notas
+        const processedData = data?.map(movement => {
+          const processedMovement: StockMovement = {
+            ...movement,
+            sale_id: undefined
+          };
+          
+          // Verifica se a movimentação é do tipo 'saida' e razão 'venda'
+          if (movement.type === 'saida' && movement.reason === 'venda' && movement.notes) {
+            // Tenta extrair o ID da venda das notas (formato "Venda #id-da-venda")
+            const vendaMatch = movement.notes.match(/Venda #([a-zA-Z0-9-]+)/);
+            if (vendaMatch && vendaMatch[1]) {
+              processedMovement.sale_id = vendaMatch[1];
+            }
+          }
+          
+          return processedMovement;
+        });
+
         return {
-          data: data as StockMovement[],
+          data: processedData as StockMovement[],
           error: null,
           status: 'success',
         };
       } else {
         // Filtrar movimentações pelo ID do livro
         const { data: allMovements } = await this.getAll();
-        const bookMovements = allMovements?.filter(
+        let bookMovements = allMovements?.filter(
           movement => movement.book_id === bookId
         ) || [];
+        
+        // Processar para adicionar sale_id simulado
+        bookMovements = bookMovements.map(movement => {
+          const processedMovement: StockMovement = {
+            ...movement,
+            sale_id: undefined
+          };
+          
+          if (movement.type === 'saida' && movement.reason === 'venda' && movement.notes) {
+            // Para ambiente de desenvolvimento, simular sale_id
+            if (movement.notes.includes('simulada')) {
+              processedMovement.sale_id = `simulated-${Date.now()}`;
+            } else {
+              const vendaMatch = movement.notes.match(/Venda #([a-zA-Z0-9-]+)/);
+              if (vendaMatch && vendaMatch[1]) {
+                processedMovement.sale_id = vendaMatch[1];
+              }
+            }
+          }
+          
+          return processedMovement;
+        });
 
         return {
           data: bookMovements,

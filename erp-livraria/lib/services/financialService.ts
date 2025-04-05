@@ -21,6 +21,7 @@ export interface Transacao {
   vinculoTipo?: "venda" | "compra" | "outro";
   venda?: string; // ID da venda relacionada
   comprovante?: string; // URL do comprovante
+  linkVenda?: string; // Link para acessar a venda relacionada
 }
 
 // Interface que representa o formato dos dados na tabela do Supabase
@@ -39,13 +40,14 @@ interface TransacaoSupabase {
   vinculoid?: string;
   vinculotipo?: string;
   comprovante?: string;
+  linkvenda?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 // Converter objeto da interface Transacao para o formato do Supabase
 function transacaoToSupabase(transacao: Omit<Transacao, 'id'>): Omit<TransacaoSupabase, 'id' | 'created_at' | 'updated_at'> {
-  const { dataVencimento, dataPagamento, formaPagamento, vinculoId, vinculoTipo, ...resto } = transacao;
+  const { dataVencimento, dataPagamento, formaPagamento, vinculoId, vinculoTipo, linkVenda, ...resto } = transacao;
   
   return {
     ...resto,
@@ -53,13 +55,14 @@ function transacaoToSupabase(transacao: Omit<Transacao, 'id'>): Omit<TransacaoSu
     datapagamento: dataPagamento,
     formapagamento: formaPagamento,
     vinculoid: vinculoId,
-    vinculotipo: vinculoTipo
+    vinculotipo: vinculoTipo,
+    linkvenda: linkVenda
   };
 }
 
 // Converter objeto do formato do Supabase para a interface Transacao
 function supabaseToTransacao(dados: TransacaoSupabase): Transacao {
-  const { datavencimento, datapagamento, formapagamento, vinculoid, vinculotipo, created_at, updated_at, ...resto } = dados;
+  const { datavencimento, datapagamento, formapagamento, vinculoid, vinculotipo, linkvenda, created_at, updated_at, ...resto } = dados;
   
   return {
     ...resto,
@@ -67,7 +70,8 @@ function supabaseToTransacao(dados: TransacaoSupabase): Transacao {
     dataPagamento: datapagamento,
     formaPagamento: formapagamento as FormaPagamento,
     vinculoId: vinculoid,
-    vinculoTipo: vinculotipo as "venda" | "compra" | "outro"
+    vinculoTipo: vinculotipo as "venda" | "compra" | "outro",
+    linkVenda: linkvenda
   };
 }
 
@@ -103,7 +107,7 @@ async function verificarAutenticacao() {
 
 // Armazenamento local de transações para garantir o funcionamento básico
 // mesmo sem conectividade com o backend
-let localTransacoes: Transacao[] = [
+const TRANSACOES_INICIAIS: Transacao[] = [
   {
     id: "TRX001",
     descricao: "Venda - Pedido #V001",
@@ -170,14 +174,30 @@ let localTransacoes: Transacao[] = [
   }
 ];
 
+// Variável global para armazenar as transações em memória
+let localTransacoes: Transacao[] = [];
+
 // Persistir transações no localStorage para manter dados entre recarregamentos
 function salvarDadosNoStorage() {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem('erp-livraria-transacoes', JSON.stringify(localTransacoes));
+      console.log('====== Salvando dados no localStorage ======');
+      console.log('Total de transações a salvar:', localTransacoes.length);
+      const jsonData = JSON.stringify(localTransacoes);
+      console.log(`Tamanho dos dados: ${jsonData.length} caracteres`);
+      
+      localStorage.setItem('erp-livraria-transacoes', jsonData);
+      console.log('Dados salvos com sucesso no localStorage');
+      
+      // Verificação imediata para garantir que os dados foram salvos
+      const verificacao = localStorage.getItem('erp-livraria-transacoes');
+      console.log(`Verificação de salvamento: ${verificacao ? 'Dados encontrados' : 'FALHA - Dados não encontrados'}`);
+      console.log(`Tamanho dos dados verificados: ${verificacao?.length || 0} caracteres`);
     } catch (error) {
       console.error('Erro ao salvar transações no localStorage:', error);
     }
+  } else {
+    console.warn('Window não está disponível (provavelmente renderização do lado do servidor)');
   }
 }
 
@@ -185,18 +205,52 @@ function salvarDadosNoStorage() {
 function carregarDadosDoStorage() {
   if (typeof window !== 'undefined') {
     try {
+      console.log('====== Carregando dados do localStorage ======');
       const dados = localStorage.getItem('erp-livraria-transacoes');
+      console.log(`Dados encontrados: ${dados ? 'Sim' : 'Não'}`);
+      
       if (dados) {
-        localTransacoes = JSON.parse(dados);
+        console.log(`Tamanho dos dados: ${dados.length} caracteres`);
+        const transacoesParsed = JSON.parse(dados);
+        console.log(`Total de transações carregadas: ${transacoesParsed.length}`);
+        localTransacoes = transacoesParsed;
+        
+        // Verificar se existem transações
+        if (transacoesParsed.length > 0) {
+          console.log('Primeira transação:', transacoesParsed[0].id);
+          console.log('Última transação:', transacoesParsed[transacoesParsed.length - 1].id);
+        } else {
+          console.warn('Nenhuma transação encontrada no localStorage');
+        }
+      } else {
+        console.warn('Nenhum dado encontrado no localStorage');
+        // Garantir dados iniciais
+        localTransacoes = TRANSACOES_INICIAIS;
+        // Salvar imediatamente para garantir persistência
+        setTimeout(() => salvarDadosNoStorage(), 100);
       }
     } catch (error) {
       console.error('Erro ao carregar transações do localStorage:', error);
+      console.log('Usando dados iniciais devido a erro');
+      localTransacoes = TRANSACOES_INICIAIS;
     }
+  } else {
+    console.warn('Window não está disponível (provavelmente renderização do lado do servidor)');
   }
 }
 
 // Inicializar dados
 carregarDadosDoStorage();
+
+/**
+ * Forçar a recarga de dados do localStorage
+ * Útil para garantir que os dados estão atualizados após operações
+ */
+export function forcarRecargaDados() {
+  console.log('====== Forçando recarga de dados do localStorage ======');
+  carregarDadosDoStorage();
+  return localTransacoes.length;
+}
 
 /**
  * Busca transações com opções de filtragem e paginação
@@ -208,6 +262,8 @@ export async function fetchTransacoes({
   dataFim,
   categoria,
   busca,
+  vinculoId,
+  vinculoTipo,
   page = 1,
   limit = 10
 }: {
@@ -217,12 +273,15 @@ export async function fetchTransacoes({
   dataFim?: string;
   categoria?: string;
   busca?: string;
+  vinculoId?: string;
+  vinculoTipo?: "venda" | "compra" | "outro";
   page?: number;
   limit?: number;
 }): Promise<{
   transacoes: Transacao[];
   total: number;
   totalPages: number;
+  currentBalance: number;
 }> {
   // Sempre tentar primeiro com o Supabase
   if (supabase) {
@@ -251,6 +310,14 @@ export async function fetchTransacoes({
         query = query.eq('categoria', categoria);
       }
       
+      if (vinculoId) {
+        query = query.eq('vinculoid', vinculoId);
+      }
+      
+      if (vinculoTipo) {
+        query = query.eq('vinculotipo', vinculoTipo);
+      }
+      
       if (busca) {
         query = query.or(`descricao.ilike.%${busca}%,id.ilike.%${busca}%,observacoes.ilike.%${busca}%`);
       }
@@ -276,10 +343,27 @@ export async function fetchTransacoes({
       // Converter os dados do formato do Supabase para o formato da interface
       const transacoes = (data as TransacaoSupabase[]).map(supabaseToTransacao);
       
+      // Calcular saldo atual usando TODAS as transações confirmadas, não apenas as filtradas
+      // Fazer uma consulta separada para obter todas as transações confirmadas
+      const { data: allConfirmedData, error: allConfirmedError } = await supabase
+        .from('financial_transactions')
+        .select('*')
+        .eq('status', 'confirmada');
+        
+      if (allConfirmedError) {
+        throw allConfirmedError;
+      }
+      
+      const allConfirmedTransactions = (allConfirmedData as TransacaoSupabase[]).map(supabaseToTransacao);
+      const currentBalance = allConfirmedTransactions.reduce((acc, t) => {
+        return t.tipo === 'receita' ? acc + t.valor : acc - t.valor;
+      }, 0);
+      
       return {
         transacoes,
         total,
-        totalPages
+        totalPages,
+        currentBalance
       };
     } catch (error) {
       console.error('Erro ao buscar transações do Supabase:', error);
@@ -291,6 +375,37 @@ export async function fetchTransacoes({
   
   // Fallback para dados locais
   try {
+    console.log('====== Executando fallback para dados locais ======');
+    console.log('Total de transações em memória:', localTransacoes.length);
+    
+    // DEBUG: Verificar novamente o localStorage
+    if (typeof window !== 'undefined') {
+      const rawData = localStorage.getItem('erp-livraria-transacoes');
+      console.log(`Dados no localStorage: ${rawData ? 'Encontrados' : 'Não encontrados'}`);
+      
+      if (rawData) {
+        console.log(`Tamanho dos dados: ${rawData.length} caracteres`);
+        try {
+          const parsedData = JSON.parse(rawData);
+          console.log(`Total de transações no localStorage: ${parsedData.length}`);
+          
+          // Comparar com os dados em memória
+          if (parsedData.length !== localTransacoes.length) {
+            console.warn('ATENÇÃO: Inconsistência entre localStorage e memória detectada!');
+            console.log('Dados completos do localStorage:', parsedData);
+            
+            // Atualizar os dados em memória
+            console.log('Atualizando dados em memória com os do localStorage...');
+            localTransacoes = parsedData;
+          }
+        } catch (parseError) {
+          console.error('Erro ao analisar dados do localStorage:', parseError);
+        }
+      } else {
+        console.warn('Nenhum dado encontrado no localStorage');
+      }
+    }
+    
     // Aplicar filtros aos dados locais
     let transacoesFiltradas = [...localTransacoes];
     
@@ -312,6 +427,14 @@ export async function fetchTransacoes({
     
     if (categoria) {
       transacoesFiltradas = transacoesFiltradas.filter(t => t.categoria === categoria);
+    }
+    
+    if (vinculoId) {
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.vinculoId === vinculoId);
+    }
+    
+    if (vinculoTipo) {
+      transacoesFiltradas = transacoesFiltradas.filter(t => t.vinculoTipo === vinculoTipo);
     }
     
     if (busca) {
@@ -336,17 +459,25 @@ export async function fetchTransacoes({
     const total = transacoesFiltradas.length;
     const totalPages = Math.ceil(total / limit);
     
+    // Calcular saldo atual usando TODAS as transações confirmadas, não apenas as filtradas
+    const confirmedTransactions = localTransacoes.filter(t => t.status === 'confirmada');
+    const currentBalance = confirmedTransactions.reduce((acc, t) => {
+      return t.tipo === 'receita' ? acc + t.valor : acc - t.valor;
+    }, 0);
+    
     return {
       transacoes: transacoesPaginadas,
       total,
-      totalPages
+      totalPages,
+      currentBalance
     };
   } catch (error) {
     console.error('Erro ao processar dados locais:', error);
     return {
       transacoes: [],
       total: 0,
-      totalPages: 0
+      totalPages: 0,
+      currentBalance: 0
     };
   }
 }
@@ -390,13 +521,17 @@ export async function fetchTransacaoById(id: string): Promise<Transacao | null> 
  * Cria uma nova transação
  */
 export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise<Transacao> {
+  console.log('====== INÍCIO: Criação de Transação Financeira ======');
+  console.log('Dados recebidos para criação:', JSON.stringify(transacao, null, 2));
+  
   // Tentar primeiro com o Supabase
   if (supabase) {
     try {
-      console.log('Tentando criar transação no Supabase:', transacao);
+      console.log('Supabase disponível, tentando criar transação remotamente...');
       
       // Converter para o formato do Supabase
       const dadosSupabase = transacaoToSupabase(transacao);
+      console.log('Dados convertidos para formato Supabase:', dadosSupabase);
       
       const { data, error } = await supabase
         .from('financial_transactions')
@@ -405,22 +540,27 @@ export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise
         .single();
         
       if (error) {
+        console.error('Erro retornado pelo Supabase:', error);
         throw error;
       }
       
       console.log('Transação criada com sucesso no Supabase:', data);
       
       // Converter de volta para o formato da interface
-      return supabaseToTransacao(data as TransacaoSupabase);
+      const transacaoFinal = supabaseToTransacao(data as TransacaoSupabase);
+      console.log('Dados convertidos de volta para formato da aplicação:', transacaoFinal);
+      console.log('====== FIM: Criação de Transação Financeira (Supabase) ======');
+      return transacaoFinal;
     } catch (error) {
-      console.error('Erro ao criar transação no Supabase:', error);
-      console.log('Criando nos dados locais...');
+      console.error('Erro detalhado ao criar transação no Supabase:', error);
+      console.log('Fallback: Criando nos dados locais devido a erro no Supabase...');
     }
   } else {
     console.log('Supabase não está disponível, criando nos dados locais...');
   }
   
   // Fallback para dados locais
+  console.log('Iniciando criação em armazenamento local...');
   const id = `TRX${String(localTransacoes.length + 1).padStart(3, '0')}`;
   
   const novaTransacao: Transacao = {
@@ -428,11 +568,22 @@ export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise
     ...transacao
   };
   
+  console.log('Nova transação local criada:', novaTransacao);
+  
+  // Adicionar ao início do array para aparecer primeiro nas listagens
   localTransacoes.unshift(novaTransacao);
   
-  // Persistir no localStorage
-  salvarDadosNoStorage();
+  console.log(`Transação adicionada aos dados locais. Total de transações: ${localTransacoes.length}`);
   
+  // Persistir no localStorage
+  try {
+    salvarDadosNoStorage();
+    console.log('Dados salvos com sucesso no localStorage');
+  } catch (storageError) {
+    console.error('Erro ao salvar no localStorage:', storageError);
+  }
+  
+  console.log('====== FIM: Criação de Transação Financeira (Local) ======');
   return novaTransacao;
 }
 

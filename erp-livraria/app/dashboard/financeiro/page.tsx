@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import Link from "next/link";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { 
@@ -31,7 +31,7 @@ import {
   ChevronRight,
   RefreshCw
 } from "lucide-react";
-import { fetchTransacoes, Transacao, TransacaoTipo, TransacaoStatus, FormaPagamento } from '@/lib/services/financialService';
+import { fetchTransacoes, Transacao, TransacaoTipo, TransacaoStatus, FormaPagamento, forcarRecargaDados } from '@/lib/services/financialService';
 
 // Dados simulados de categorias
 const categoriasReceitas = [
@@ -260,28 +260,100 @@ function FinanceiroPage() {
   const [periodoFim, setPeriodoFim] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const [saldoAtual, setSaldoAtual] = useState(0);
   
-  // Efeito para carregar transações do serviço
+  // Função para carregar transações
+  const carregarTransacoes = useCallback(async () => {
+    try {
+      setAtualizando(true);
+      setErro(null);
+      
+      const result = await fetchTransacoes({
+        limit: 100 // Aumentar o limite para garantir que todas as transações recentes sejam carregadas
+      });
+      
+      setTransacoes(result.transacoes);
+      setSaldoAtual(result.currentBalance);
+      
+      console.log('Transações carregadas:', result.transacoes.length);
+    } catch (error) {
+      console.error("Erro ao carregar transações:", error);
+      setErro(error instanceof Error ? error.message : "Erro desconhecido");
+    } finally {
+      setCarregando(false);
+      setAtualizando(false);
+    }
+  }, []);
+  
+  // Efeito para carregar transações do serviço na inicialização
   useEffect(() => {
-    async function carregarTransacoes() {
+    carregarTransacoes();
+  }, [carregarTransacoes]);
+  
+  // Efeito para atualizar dados a cada 60 segundos
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      console.log('Atualizando transações automaticamente...');
+      carregarTransacoes();
+    }, 60000); // 60 segundos
+    
+    return () => clearInterval(intervalo);
+  }, [carregarTransacoes]);
+  
+  // Função para forçar a atualização manual dos dados
+  const atualizarDados = () => {
+    console.log('====== INÍCIO: Atualização manual de transações ======');
+    setAtualizando(true);
+    
+    // Pequeno delay para garantir efeito visual de carregamento
+    setTimeout(async () => {
       try {
-        setCarregando(true);
-        setErro(null);
+        // Forçar uma chamada ao localStorage para verificar se há dados
+        if (typeof window !== 'undefined') {
+          const dadosLocal = localStorage.getItem('erp-livraria-transacoes');
+          console.log(`Dados no localStorage: ${dadosLocal ? 'Encontrados' : 'Não encontrados'}`);
+          if (dadosLocal) {
+            console.log(`Tamanho dos dados: ${dadosLocal.length} caracteres`);
+            const dadosParsed = JSON.parse(dadosLocal);
+            console.log(`Transações no localStorage: ${dadosParsed.length}`);
+          }
+        }
         
-        const result = await fetchTransacoes({});
+        // Forçar recarga de dados do localStorage
+        const quantidadeTransacoes = forcarRecargaDados();
+        console.log(`Recarregadas ${quantidadeTransacoes} transações do localStorage`);
+        
+        console.log('Buscando transações do serviço financeiro...');
+        const result = await fetchTransacoes({
+          limit: 100
+        });
+        
+        console.log('Resultado da busca:', {
+          totalTransacoes: result.transacoes.length,
+          saldo: result.currentBalance,
+          totalPaginas: result.totalPages,
+          total: result.total
+        });
+        
+        if (result.transacoes.length > 0) {
+          console.log('Primeira transação:', result.transacoes[0]);
+          console.log('Última transação:', result.transacoes[result.transacoes.length - 1]);
+        } else {
+          console.warn('Nenhuma transação retornada pela API');
+        }
+        
         setTransacoes(result.transacoes);
-        
-        console.log('Transações carregadas:', result.transacoes.length);
+        setSaldoAtual(result.currentBalance);
       } catch (error) {
-        console.error("Erro ao carregar transações:", error);
+        console.error('Erro durante atualização manual:', error);
         setErro(error instanceof Error ? error.message : "Erro desconhecido");
       } finally {
-        setCarregando(false);
+        setAtualizando(false);
+        console.log('====== FIM: Atualização manual de transações ======');
       }
-    }
-    
-    carregarTransacoes();
-  }, []);
+    }, 300);
+  };
   
   // Calcular totais para o resumo
   const todasReceitas = transacoes.filter(t => t.tipo === "receita" && t.status !== "cancelada");
@@ -297,7 +369,6 @@ function FinanceiroPage() {
   const totalReceitasPendentes = receitasPendentes.reduce((acc, t) => acc + t.valor, 0);
   const totalDespesasPendentes = despesasPendentes.reduce((acc, t) => acc + t.valor, 0);
   
-  const saldoAtual = totalReceitasConfirmadas - totalDespesasConfirmadas;
   const saldoPrevisto = saldoAtual + totalReceitasPendentes - totalDespesasPendentes;
   
   // Agrupar transações por categoria para análise
@@ -478,6 +549,15 @@ function FinanceiroPage() {
                 />
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
               </div>
+              <button
+                onClick={atualizarDados}
+                disabled={atualizando}
+                className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                title="Atualizar dados"
+              >
+                <RefreshCw className={`h-4 w-4 ${atualizando ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Atualizar</span>
+              </button>
               <Link
                 href="/dashboard/financeiro/relatorios"
                 className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"

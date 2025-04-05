@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={inter.variable}>
-      <body className="bg-neutral-50 text-neutral-900 antialiased">
+      <body className="bg-neutral-50 text-neutral-900 antialiased" suppressHydrationWarning>
         <AuthProvider>
           <main>{children}</main>
         </AuthProvider>

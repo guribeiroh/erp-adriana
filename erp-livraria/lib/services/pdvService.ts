@@ -236,17 +236,16 @@ export async function finalizeSale(
   if (!isSupabaseAvailable) {
     console.warn('Supabase não está disponível, simulando venda');
     
-    // Simular redução de estoque e registrar movimentações
+    // Simular movimentação de estoque
     for (const item of items) {
       try {
-        // Registrar movimentação de estoque simulada
         await stockService.createMovement({
           book_id: item.book.id,
           type: 'saida',
           quantity: item.quantity,
           reason: 'venda',
-          notes: `Venda simulada`,
-          responsible: userId || 'usuário-simulado'
+          notes: 'Venda simulada',
+          responsible: userId || 'sistema'
         });
         console.log(`Movimentação de estoque simulada registrada para o livro ${item.book.id}`);
       } catch (error) {
@@ -272,12 +271,22 @@ export async function finalizeSale(
     
     // Registrar a transação financeira
     try {
+      console.log('====== INÍCIO: Registrando transação financeira simulada ======');
+      console.log('Dados da venda para registro financeiro:', { 
+        id: saleId,
+        total,
+        customerId,
+        nomeCliente
+      });
+      
       const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
-      await financialService.createTransacao({
+      const dataAtual = new Date().toISOString().split('T')[0];
+      
+      const dadosTransacao = {
         descricao: `Venda - ${nomeCliente}`,
         valor: total,
-        data: new Date().toISOString().split('T')[0],
-        dataPagamento: new Date().toISOString().split('T')[0],
+        data: dataAtual,
+        dataPagamento: dataAtual,
         tipo: 'receita',
         categoria: 'Vendas',
         status: 'confirmada',
@@ -286,12 +295,52 @@ export async function finalizeSale(
         vinculoTipo: 'venda',
         observacoes: notes || undefined,
         linkVenda: `/pdv/vendas/${saleId}`
-      });
-      console.log('Transação financeira simulada registrada com sucesso');
+      };
+      
+      console.log('Dados da transação a ser criada:', dadosTransacao);
+      
+      const transacaoCriada = await financialService.createTransacao(dadosTransacao);
+      console.log('Transação financeira simulada criada com sucesso:', transacaoCriada);
+      
+      // Verificar se a transação foi realmente criada e persistida
+      setTimeout(async () => {
+        try {
+          console.log('Verificando se a transação simulada foi persistida...');
+          const transacoesVenda = await financialService.fetchTransacoes({
+            vinculoId: saleId,
+            limit: 1
+          });
+          
+          if (transacoesVenda.transacoes.length > 0) {
+            console.log('Transação simulada encontrada na verificação:', transacoesVenda.transacoes[0]);
+          } else {
+            console.warn('ALERTA: Transação simulada NÃO foi encontrada na verificação. Pode haver um problema de persistência.');
+            // Se não encontrou, tentar criar novamente usando método alternativo
+            registrarTransacaoAlternativa(saleId, total, nomeCliente, paymentMethod, notes);
+          }
+        } catch (verifyError) {
+          console.error('Erro ao verificar persistência da transação simulada:', verifyError);
+          // Tentar método alternativo em caso de erro de verificação
+          registrarTransacaoAlternativa(saleId, total, nomeCliente, paymentMethod, notes);
+        }
+      }, 500);
+      
+      console.log('====== FIM: Registro de transação financeira simulada ======');
     } catch (error) {
-      console.error('Erro ao registrar transação financeira simulada:', error);
-      // Não interrompe o fluxo em caso de erro
+      console.error('====== ERRO: Falha ao registrar transação financeira simulada ======', error);
+      // Tenta novamente usando método alternativo
+      registrarTransacaoAlternativa(saleId, total, nomeCliente, paymentMethod, notes);
     }
+    
+    // Forçar a recarga dos dados do localStorage 
+    setTimeout(() => {
+      try {
+        console.log('Forçando recarga de dados financeiros após venda simulada...');
+        financialService.forcarRecargaDados();
+      } catch (reloadError) {
+        console.error('Erro ao recarregar dados financeiros:', reloadError);
+      }
+    }, 1000);
     
     return saleId;
   }
@@ -449,11 +498,18 @@ export async function finalizeSale(
     
     // Registrar a transação financeira
     try {
-      console.log('Registrando transação financeira...');
+      console.log('====== INÍCIO: Registrando transação financeira ======');
+      console.log('Dados da venda para registro financeiro:', { 
+        id: sale.id,
+        total,
+        customerId,
+        nomeCliente
+      });
+      
       const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
       const dataAtual = new Date().toISOString().split('T')[0];
       
-      await financialService.createTransacao({
+      const dadosTransacao = {
         descricao: `Venda - ${nomeCliente}`,
         valor: total,
         data: dataAtual,
@@ -466,18 +522,112 @@ export async function finalizeSale(
         vinculoTipo: 'venda',
         observacoes: notes || undefined,
         linkVenda: `/pdv/vendas/${sale.id}`
-      });
-      console.log('Transação financeira registrada com sucesso');
+      };
+      
+      console.log('Dados da transação a ser criada:', dadosTransacao);
+      
+      const transacaoCriada = await financialService.createTransacao(dadosTransacao);
+      console.log('Transação financeira criada com sucesso:', transacaoCriada);
+      
+      // Verificar se a transação foi realmente criada e persistida
+      setTimeout(async () => {
+        try {
+          console.log('Verificando se a transação foi persistida...');
+          const transacoesVenda = await financialService.fetchTransacoes({
+            vinculoId: sale.id,
+            limit: 1
+          });
+          
+          if (transacoesVenda.transacoes.length > 0) {
+            console.log('Transação encontrada na verificação:', transacoesVenda.transacoes[0]);
+          } else {
+            console.warn('ALERTA: Transação NÃO foi encontrada na verificação. Pode haver um problema de persistência.');
+            
+            // Se não encontrou, tentar criar novamente usando método alternativo
+            registrarTransacaoAlternativa(sale.id, total, nomeCliente, paymentMethod, notes);
+          }
+        } catch (verifyError) {
+          console.error('Erro ao verificar persistência da transação:', verifyError);
+          // Tentar método alternativo em caso de erro de verificação
+          registrarTransacaoAlternativa(sale.id, total, nomeCliente, paymentMethod, notes);
+        }
+      }, 500);
+      
+      console.log('====== FIM: Registro de transação financeira ======');
     } catch (error) {
-      console.error('Erro ao registrar transação financeira:', error);
+      console.error('====== ERRO: Falha ao registrar transação financeira ======', error);
+      
+      // Tenta novamente usando método alternativo
+      registrarTransacaoAlternativa(sale.id, total, nomeCliente, paymentMethod, notes);
+      
       // Não interrompe o fluxo principal em caso de erro no registro financeiro
     }
 
     console.log('Venda finalizada com sucesso!');
+    
+    // Forçar a recarga dos dados do localStorage 
+    setTimeout(() => {
+      try {
+        console.log('Forçando recarga de dados financeiros após venda real...');
+        financialService.forcarRecargaDados();
+      } catch (reloadError) {
+        console.error('Erro ao recarregar dados financeiros:', reloadError);
+      }
+    }, 1000);
+    
     return sale.id;
   } catch (error) {
     console.error('Erro ao finalizar venda:', error);
     throw error;
+  }
+}
+
+// Função auxiliar para registrar transação financeira por método alternativo
+function registrarTransacaoAlternativa(
+  saleId: string, 
+  valor: number, 
+  nomeCliente: string, 
+  paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer',
+  notes?: string
+) {
+  try {
+    console.log('Tentando método alternativo para criar transação financeira...');
+    // Usar o método direto de salvar em localStorage sem tentar Supabase primeiro
+    const id = `TRX${Date.now()}`;
+    const novaTransacao = {
+      id,
+      descricao: `Venda (Recuperação) - ${nomeCliente}`,
+      valor,
+      data: new Date().toISOString().split('T')[0],
+      dataPagamento: new Date().toISOString().split('T')[0],
+      tipo: 'receita' as const,
+      categoria: 'Vendas',
+      status: 'confirmada' as const,
+      formaPagamento: mapPaymentMethodToFinancial(paymentMethod),
+      vinculoId: saleId,
+      vinculoTipo: 'venda' as const,
+      observacoes: `${notes || ''} (Registrado por método alternativo)`,
+      linkVenda: `/pdv/vendas/${saleId}`
+    };
+    
+    console.log('Transação alternativa a ser adicionada:', novaTransacao);
+    
+    // Acessar diretamente o localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const dadosAtuais = localStorage.getItem('erp-livraria-transacoes');
+        const transacoes = dadosAtuais ? JSON.parse(dadosAtuais) : [];
+        transacoes.unshift(novaTransacao);
+        localStorage.setItem('erp-livraria-transacoes', JSON.stringify(transacoes));
+        console.log('Transação adicionada diretamente ao localStorage. Total:', transacoes.length);
+      } catch (localError) {
+        console.error('Erro ao salvar diretamente no localStorage:', localError);
+      }
+    }
+    
+    console.log('Método alternativo concluído');
+  } catch (fallbackError) {
+    console.error('Falha também no método alternativo:', fallbackError);
   }
 }
 
