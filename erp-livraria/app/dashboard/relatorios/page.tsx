@@ -7,10 +7,7 @@ import {
   BookOpen, 
   DollarSign, 
   Users, 
-  BarChart2,
-  PieChart,
-  Calendar,
-  TrendingUp
+  Calendar
 } from 'lucide-react';
 
 export default function RelatoriosPage() {
@@ -59,35 +56,6 @@ export default function RelatoriosPage() {
           href="/dashboard/relatorios/clientes"
           iconColor="bg-amber-100 text-amber-600"
         />
-      </div>
-
-      <div className="mt-12">
-        <h2 className="text-lg font-medium text-gray-900 mb-6">Gráficos e Dashboards</h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Dashboard de Vendas */}
-          <DashboardCard 
-            title="Dashboard de Vendas" 
-            description="Visualize tendências e desempenho de vendas" 
-            icon={BarChart2} 
-            href="/dashboard/relatorios/dashboard-vendas"
-          />
-          
-          {/* Dashboard Financeiro */}
-          <DashboardCard 
-            title="Dashboard Financeiro" 
-            description="Acompanhe a saúde financeira do negócio" 
-            icon={TrendingUp} 
-            href="/dashboard/relatorios/dashboard-financeiro"
-          />
-          
-          {/* Relatório Personalizado */}
-          <DashboardCard 
-            title="Relatório Personalizado" 
-            description="Crie relatórios customizados conforme sua necessidade" 
-            icon={PieChart} 
-            href="/dashboard/relatorios/personalizado"
-          />
-        </div>
       </div>
 
       <div className="mt-12">
@@ -152,30 +120,6 @@ function ReportCard({ title, description, icon: Icon, href, iconColor }: ReportC
         <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-      </div>
-    </Link>
-  );
-}
-
-interface DashboardCardProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  href: string;
-}
-
-function DashboardCard({ title, description, icon: Icon, href }: DashboardCardProps) {
-  return (
-    <Link 
-      href={href}
-      className="flex items-start p-5 bg-white rounded-lg border border-gray-200 shadow-sm transition-shadow hover:shadow-md"
-    >
-      <div className="mr-4 bg-gray-100 rounded-lg p-3">
-        <Icon className="h-5 w-5 text-gray-700" />
-      </div>
-      <div>
-        <h3 className="text-base font-medium text-gray-900 mb-1">{title}</h3>
-        <p className="text-sm text-gray-600">{description}</p>
       </div>
     </Link>
   );
