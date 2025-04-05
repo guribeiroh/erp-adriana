@@ -23,6 +23,7 @@ import {
   Tag
 } from "lucide-react";
 import { fetchTransacoes, Transacao, updateTransacao } from "@/lib/services/financialService";
+import { formatBrazilianDate, getCurrentBrazilianDate } from '@/lib/utils/date';
 
 export default function ContasPagarPage() {
   // Estados
@@ -239,21 +240,23 @@ export default function ContasPagarPage() {
   // Verificar se uma data está vencida
   const isVencida = (dataString?: string) => {
     if (!dataString) return false;
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const data = new Date(dataString);
-    data.setHours(0, 0, 0, 0);
-    return data < hoje;
+    
+    // Obter a data atual no formato YYYY-MM-DD no fuso de Brasília
+    const hojeStr = getCurrentBrazilianDate('date-string') as string;
+    
+    // Comparar as strings de data diretamente (no formato YYYY-MM-DD)
+    return dataString < hojeStr;
   };
   
   // Verificar se uma data é hoje
   const isHoje = (dataString?: string) => {
     if (!dataString) return false;
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const data = new Date(dataString);
-    data.setHours(0, 0, 0, 0);
-    return data.getTime() === hoje.getTime();
+    
+    // Obter a data atual no formato YYYY-MM-DD no fuso de Brasília
+    const hojeStr = getCurrentBrazilianDate('date-string') as string;
+    
+    // Comparar as strings de data diretamente
+    return dataString === hojeStr;
   };
   
   return (

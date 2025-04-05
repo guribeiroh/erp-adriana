@@ -18,6 +18,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import { formatBrazilianDate } from '@/lib/utils/date';
 
 // Tipos
 type Periodo = "7dias" | "30dias" | "3meses" | "6meses" | "12meses" | "personalizado";
@@ -75,8 +76,7 @@ export default function RelatoriosFinanceirosPage() {
 
   // Formatador de datas
   const formatarData = (dataString: string) => {
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
+    return formatBrazilianDate(dataString);
   };
 
   // Calcular totais para o relatório de fluxo de caixa

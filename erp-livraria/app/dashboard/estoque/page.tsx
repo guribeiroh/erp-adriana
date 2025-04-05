@@ -20,6 +20,7 @@ import {
 import { bookService, Book } from "@/lib/services/bookService";
 import { stockService, StockMovementWithBook } from "@/lib/services/stockService";
 import { useRouter } from "next/navigation";
+import { formatBrazilianDate } from '@/lib/utils/date';
 
 // Interface para livro com status de estoque calculado
 interface BookWithStockStatus extends Book {

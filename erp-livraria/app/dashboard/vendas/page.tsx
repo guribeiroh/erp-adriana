@@ -24,6 +24,7 @@ import {
 import { fetchRecentSales } from "@/lib/services/pdvService";
 import { supabase } from "@/lib/supabase/client";
 import { Sale } from "@/models/database.types";
+import { formatBrazilianDate, getCurrentBrazilianDate } from "@/lib/utils/date";
 
 // Tipos para vendas
 interface VendaCompleta extends Sale {
@@ -123,17 +124,25 @@ export default function VendasPage() {
     .filter((venda) => {
       // Filtrar por período
       if (periodoSelecionado === "hoje") {
-        const hoje = new Date().toISOString().split('T')[0];
-        const dataVenda = new Date(venda.created_at).toISOString().split('T')[0];
+        // Obter a data atual no formato YYYY-MM-DD no fuso de Brasília
+        const hoje = getCurrentBrazilianDate('date-string') as string;
+        // Converter a data da venda para o fuso de Brasília
+        const dataVenda = formatBrazilianDate(venda.created_at).split('/').reverse().join('-');
         if (dataVenda !== hoje) return false;
       } else if (periodoSelecionado === "semana") {
+        // Criar data de uma semana atrás no fuso de Brasília
         const umaSemanaAtras = new Date();
         umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
-        if (new Date(venda.created_at) < umaSemanaAtras) return false;
+        // Converter para ISO para comparação
+        const umaSemanaAtrasISO = umaSemanaAtras.toISOString();
+        if (new Date(venda.created_at).toISOString() < umaSemanaAtrasISO) return false;
       } else if (periodoSelecionado === "mes") {
+        // Criar data de um mês atrás no fuso de Brasília
         const umMesAtras = new Date();
         umMesAtras.setMonth(umMesAtras.getMonth() - 1);
-        if (new Date(venda.created_at) < umMesAtras) return false;
+        // Converter para ISO para comparação
+        const umMesAtrasISO = umMesAtras.toISOString();
+        if (new Date(venda.created_at).toISOString() < umMesAtrasISO) return false;
       }
       
       // Filtrar por status
@@ -176,12 +185,7 @@ export default function VendasPage() {
   
   // Função para formatar a data
   const formatarData = (dataString: string) => {
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return formatBrazilianDate(dataString);
   };
   
   // Função para formatar o valor monetário

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, User, ShoppingCart, AlertCircle } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useCart } from '@/lib/context/CartContext';
+import { useAuth } from '@/lib/context/AuthContext';
 import { Book, Customer } from '@/models/database.types';
 import { fetchAvailableBooks, finalizeSale } from '@/lib/services/pdvService';
 import { formatCurrency } from '@/lib/utils/format';
@@ -13,6 +14,7 @@ import CustomerSelectModal from '@/components/pdv/CustomerSelectModal';
 import PaymentModal from '@/components/pdv/PaymentModal';
 import SaleSuccessModal from '@/components/pdv/SaleSuccessModal';
 import { supabase } from '@/lib/supabase/client';
+import { toast } from 'react-hot-toast';
 
 export default function PDVPage() {
   const { 
@@ -28,6 +30,8 @@ export default function PDVPage() {
     totalDiscount,
     total
   } = useCart();
+
+  const { user, isLoading: authLoading } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [availableBooks, setAvailableBooks] = useState<Book[]>([]);
@@ -78,13 +82,20 @@ export default function PDVPage() {
 
   const handleConfirmPayment = async (method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer') => {
     try {
-      // Aqui seria necessário obter o ID do usuário autenticado
-      const userId = 'current_user_id'; // Substituir pelo ID real do usuário autenticado
+      if (authLoading) {
+        toast.error('Aguarde, verificando autenticação...');
+        return;
+      }
+
+      if (!user) {
+        toast.error('Usuário não autenticado. Faça login novamente.');
+        return;
+      }
       
       const saleId = await finalizeSale(
         items,
         customer?.id || null,
-        userId,
+        user.id, // Usando o ID do usuário do contexto de autenticação
         method,
         ''
       );
@@ -95,7 +106,7 @@ export default function PDVPage() {
       setIsSaleSuccessModalOpen(true);
     } catch (error) {
       console.error('Erro ao finalizar venda:', error);
-      // Implementar tratamento de erro aqui
+      toast.error('Erro ao finalizar venda. Tente novamente.');
     }
   };
 

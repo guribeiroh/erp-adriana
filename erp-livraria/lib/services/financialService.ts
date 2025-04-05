@@ -217,64 +217,69 @@ const TRANSACOES_INICIAIS: Transacao[] = [
 let localTransacoes: Transacao[] = [];
 
 // Persistir transações no localStorage para manter dados entre recarregamentos
-function salvarDadosNoStorage() {
+function salvarDadosNoStorage(): void {
   if (typeof window !== 'undefined') {
     try {
-      console.log('====== Salvando dados no localStorage ======');
-      console.log('Total de transações a salvar:', localTransacoes.length);
-      const jsonData = JSON.stringify(localTransacoes);
-      console.log(`Tamanho dos dados: ${jsonData.length} caracteres`);
+      // IMPORTANTE: Antes de salvar, garantir que as transações estão ordenadas por data (mais recente primeiro)
+      // Isso mantém a consistência da ordenação mesmo após recarregar a página
+      localTransacoes.sort((a, b) => {
+        const dateComparison = new Date(b.data).getTime() - new Date(a.data).getTime();
+        if (dateComparison === 0) {
+          const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+          return numB - numA;
+        }
+        return dateComparison;
+      });
       
-      localStorage.setItem('erp-livraria-transacoes', jsonData);
-      console.log('Dados salvos com sucesso no localStorage');
-      
-      // Verificação imediata para garantir que os dados foram salvos
-      const verificacao = localStorage.getItem('erp-livraria-transacoes');
-      console.log(`Verificação de salvamento: ${verificacao ? 'Dados encontrados' : 'FALHA - Dados não encontrados'}`);
-      console.log(`Tamanho dos dados verificados: ${verificacao?.length || 0} caracteres`);
+      localStorage.setItem('erp-livraria-transacoes', JSON.stringify(localTransacoes));
+      console.log(`Dados salvos com sucesso: ${localTransacoes.length} transações`);
     } catch (error) {
-      console.error('Erro ao salvar transações no localStorage:', error);
+      console.error('Erro ao salvar dados no localStorage:', error);
     }
-  } else {
-    console.warn('Window não está disponível (provavelmente renderização do lado do servidor)');
   }
 }
 
-// Carregar transações do localStorage se disponível
-function carregarDadosDoStorage() {
+/**
+ * Carrega dados do localStorage
+ */
+function carregarDadosDoStorage(): void {
   if (typeof window !== 'undefined') {
     try {
-      console.log('====== Carregando dados do localStorage ======');
-      const dados = localStorage.getItem('erp-livraria-transacoes');
-      console.log(`Dados encontrados: ${dados ? 'Sim' : 'Não'}`);
+      const dadosArmazenados = localStorage.getItem('erp-livraria-transacoes');
       
-      if (dados) {
-        console.log(`Tamanho dos dados: ${dados.length} caracteres`);
-        const transacoesParsed = JSON.parse(dados);
-        console.log(`Total de transações carregadas: ${transacoesParsed.length}`);
-        localTransacoes = transacoesParsed;
+      if (dadosArmazenados) {
+        const transacoesArmazenadas = JSON.parse(dadosArmazenados) as Transacao[];
         
-        // Verificar se existem transações
-        if (transacoesParsed.length > 0) {
-          console.log('Primeira transação:', transacoesParsed[0].id);
-          console.log('Última transação:', transacoesParsed[transacoesParsed.length - 1].id);
-        } else {
-          console.warn('Nenhuma transação encontrada no localStorage');
-        }
+        // Garantir que as transações estão ordenadas ao serem carregadas
+        transacoesArmazenadas.sort((a, b) => {
+          // Comparar por data primeiro
+          const dateComparison = new Date(b.data).getTime() - new Date(a.data).getTime();
+          
+          // Se as datas forem iguais, usar o ID como critério de desempate
+          if (dateComparison === 0) {
+            const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+            const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+            return numB - numA;
+          }
+          
+          return dateComparison;
+        });
+        
+        localTransacoes = transacoesArmazenadas;
+        console.log(`Dados carregados do localStorage: ${localTransacoes.length} transações`);
       } else {
-        console.warn('Nenhum dado encontrado no localStorage');
-        // Garantir dados iniciais
-        localTransacoes = TRANSACOES_INICIAIS;
-        // Salvar imediatamente para garantir persistência
-        setTimeout(() => salvarDadosNoStorage(), 100);
+        console.log('Nenhum dado encontrado no localStorage, usando dados iniciais');
+        localTransacoes = [...TRANSACOES_INICIAIS];
+        salvarDadosNoStorage(); // Salvar os dados iniciais no localStorage
       }
     } catch (error) {
-      console.error('Erro ao carregar transações do localStorage:', error);
-      console.log('Usando dados iniciais devido a erro');
-      localTransacoes = TRANSACOES_INICIAIS;
+      console.error('Erro ao carregar dados do localStorage:', error);
+      localTransacoes = [...TRANSACOES_INICIAIS];
     }
   } else {
-    console.warn('Window não está disponível (provavelmente renderização do lado do servidor)');
+    console.log('Window não disponível, usando dados iniciais');
+    localTransacoes = [...TRANSACOES_INICIAIS];
   }
 }
 
@@ -337,44 +342,12 @@ export async function fetchTransacoes({
         query = query.eq('status', status);
       }
       
-      // Função para ajustar a data para o formato ISO considerando o fuso de Brasília
-      const ajustarDataParaISO = (dataStr: string, finalDoDia: boolean = false): string => {
-        try {
-          // Parseamos a data assumindo que está no formato YYYY-MM-DD
-          const [ano, mes, dia] = dataStr.split('-').map(Number);
-          
-          // Criar a data no fuso de Brasília
-          let data;
-          if (finalDoDia) {
-            // Se for final do dia, definimos para 23:59:59
-            data = new Date(ano, mes - 1, dia, 23, 59, 59);
-          } else {
-            // Se for início do dia, definimos para 00:00:00
-            data = new Date(ano, mes - 1, dia, 0, 0, 0);
-          }
-          
-          // Convertemos para string ISO
-          const isoDate = data.toISOString();
-          console.log(`Data de ${finalDoDia ? 'fim' : 'início'} convertida: ${dataStr} => ${isoDate} (hora Brasil: ${
-            new Date(isoDate).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-          })`);
-          
-          return isoDate;
-        } catch (error) {
-          console.error(`Erro ao ajustar data '${dataStr}':`, error);
-          return dataStr; // Em caso de erro, retornar a data original
-        }
-      };
-      
-      // Formatando as datas para ISO antes de enviar ao Supabase, respeitando o fuso de Brasília
       if (dataInicio) {
-        const dataInicioISO = ajustarDataParaISO(dataInicio);
-        query = query.gte('data', dataInicioISO);
+        query = query.gte('data', dataInicio);
       }
       
       if (dataFim) {
-        const dataFimISO = ajustarDataParaISO(dataFim, true);
-        query = query.lte('data', dataFimISO);
+        query = query.lte('data', dataFim);
       }
       
       if (categoria) {
@@ -397,8 +370,10 @@ export async function fetchTransacoes({
       const start = (page - 1) * limit;
       query = query.range(start, start + limit - 1);
       
-      // Ordenar por data (mais recente primeiro)
-      query = query.order('data', { ascending: false });
+      // IMPORTANTE: Sempre ordenar por data mais recente primeiro, depois por criação mais recente
+      // Isso garante que as transações mais recentes apareçam primeiro
+      query = query.order('data', { ascending: false })
+                   .order('created_at', { ascending: false });
       
       const { data, error, count } = await query;
       
@@ -446,40 +421,15 @@ export async function fetchTransacoes({
   
   // Fallback para dados locais
   try {
-    console.log('====== Executando fallback para dados locais ======');
-    console.log('Total de transações em memória:', localTransacoes.length);
-    
-    // DEBUG: Verificar novamente o localStorage
-    if (typeof window !== 'undefined') {
-      const rawData = localStorage.getItem('erp-livraria-transacoes');
-      console.log(`Dados no localStorage: ${rawData ? 'Encontrados' : 'Não encontrados'}`);
-      
-      if (rawData) {
-        console.log(`Tamanho dos dados: ${rawData.length} caracteres`);
-        try {
-          const parsedData = JSON.parse(rawData);
-          console.log(`Total de transações no localStorage: ${parsedData.length}`);
-          
-          // Comparar com os dados em memória
-          if (parsedData.length !== localTransacoes.length) {
-            console.warn('ATENÇÃO: Inconsistência entre localStorage e memória detectada!');
-            console.log('Dados completos do localStorage:', parsedData);
-            
-            // Atualizar os dados em memória
-            console.log('Atualizando dados em memória com os do localStorage...');
-            localTransacoes = parsedData;
-          }
-        } catch (parseError) {
-          console.error('Erro ao analisar dados do localStorage:', parseError);
-        }
-      } else {
-        console.warn('Nenhum dado encontrado no localStorage');
-      }
+    // Carregar dados locais se necessário
+    if (localTransacoes.length === 0) {
+      carregarDadosDoStorage();
     }
     
-    // Aplicar filtros aos dados locais
+    // Clonar para não modificar o array original
     let transacoesFiltradas = [...localTransacoes];
     
+    // Aplicar filtros
     if (tipo) {
       transacoesFiltradas = transacoesFiltradas.filter(t => t.tipo === tipo);
     }
@@ -517,9 +467,22 @@ export async function fetchTransacoes({
       );
     }
     
-    // Ordenar por data (mais recente primeiro)
+    // IMPORTANTE: Ordenar por data (mais recente primeiro) 
+    // Esta ordenação é obrigatória independente dos filtros
     transacoesFiltradas.sort((a, b) => {
-      return new Date(b.data).getTime() - new Date(a.data).getTime();
+      // Comparar por data primeiro
+      const dateComparison = new Date(b.data).getTime() - new Date(a.data).getTime();
+      
+      // Se as datas forem iguais, usar o ID como critério de desempate
+      // Assumindo que IDs mais recentes têm número maior no final
+      if (dateComparison === 0) {
+        // Extrair o número do final do ID (ex: TRX123 -> 123)
+        const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+        return numB - numA;
+      }
+      
+      return dateComparison;
     });
     
     // Aplicar paginação
@@ -593,93 +556,26 @@ export async function fetchTransacaoById(id: string): Promise<Transacao | null> 
  */
 export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise<Transacao> {
   console.log('====== INÍCIO: Criação de Transação Financeira ======');
-  console.log('Dados recebidos para criação:', JSON.stringify(transacao, null, 2));
+  console.log('Dados da transação a criar:', transacao);
   
   // Tentar primeiro com o Supabase
   if (supabase) {
     try {
-      console.log('Supabase disponível, tentando criar transação remotamente...');
+      console.log('Tentando criar transação no Supabase...');
       
-      // Verificar sessão atual para garantir autenticação
+      // Tentar primeiro usar a função RPC que lida corretamente com o fuso horário
       try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.warn('Erro ao verificar sessão:', sessionError.message);
-        } else if (!sessionData.session) {
-          console.warn('Usuário não autenticado. Usando fallback local.');
-          throw new Error('Usuário não autenticado');
-        } else {
-          console.log('Usuário autenticado:', sessionData.session.user.id);
-        }
-      } catch (sessionCheckError) {
-        console.error('Erro ao verificar sessão:', sessionCheckError);
-      }
-      
-      // Tentar usar diretamente a função insert_financial_transaction_brasilia
-      // Esta função foi criada especificamente para lidar com o fuso horário de Brasília
-      try {
-        console.log('Tentando criar transação diretamente com a função RPC para ajuste de fuso horário...');
-        
-        // Verificar e formatar as datas explicitamente
-        const formatarDataParaSQL = (dataStr?: string): string | null => {
-          if (!dataStr) return null;
-          
-          // SOLUÇÃO DIRETA: Retornar a data correta de hoje
-          console.log(`Data original recebida: ${dataStr}`);
-          // Se estamos no contexto atual do sistema (abril de 2025), usar data fixa
-          // Verificar se a data está próxima a abril de 2025
-          try {
-            const data = new Date(dataStr);
-            const ano = data.getFullYear();
-            const mes = data.getMonth() + 1; // getMonth retorna 0-11
-            
-            // Se estamos em abril de 2025 ou próximo, usar data fixa
-            if ((ano === 2025 && mes === 4) || 
-                (ano === 2025 && (mes === 3 || mes === 5))) {
-              console.log('Detectada data atual do sistema, usando data fixa: 2025-04-05');
-              return '2025-04-05';
-            }
-          } catch (err) {
-            // Ignorar erro de parsing, continuar com o fluxo normal
-          }
-          
-          try {
-            // Se já estiver no formato YYYY-MM-DD sem hora, usar diretamente
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
-              console.log(`Data já está no formato correto: ${dataStr}`);
-              return dataStr;
-            }
-            
-            // Caso contrário, extrair apenas a parte da data
-            const data = new Date(dataStr);
-            const dataFormatada = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
-            console.log(`Data convertida para formato SQL: ${dataStr} => ${dataFormatada}`);
-            return dataFormatada;
-          } catch (error) {
-            console.error(`Erro ao formatar data para SQL: ${dataStr}`, error);
-            return null;
-          }
-        };
-        
-        const dataFormatada = formatarDataParaSQL(transacao.data);
-        const dataVencimentoFormatada = formatarDataParaSQL(transacao.dataVencimento);
-        const dataPagamentoFormatada = formatarDataParaSQL(transacao.dataPagamento);
-        
-        console.log('Datas formatadas para RPC:', { 
-          data: dataFormatada,
-          dataVencimento: dataVencimentoFormatada,
-          dataPagamento: dataPagamentoFormatada
-        });
+        console.log(`Enviando data para função RPC: ${transacao.data} (formato YYYY-MM-DD)`);
         
         const { data: rpcData, error: rpcError } = await supabase.rpc('insert_financial_transaction_brasilia', {
           p_descricao: transacao.descricao,
           p_valor: transacao.valor,
-          p_data: dataFormatada, // Usar data formatada
+          p_data: transacao.data,
           p_tipo: transacao.tipo,
           p_categoria: transacao.categoria,
           p_status: transacao.status,
-          p_datavencimento: dataVencimentoFormatada,
-          p_datapagamento: dataPagamentoFormatada,
+          p_datavencimento: transacao.dataVencimento || null,
+          p_datapagamento: transacao.dataPagamento || null,
           p_formapagamento: transacao.formaPagamento || null,
           p_observacoes: transacao.observacoes || null,
           p_vinculoid: transacao.vinculoId || null,
@@ -689,183 +585,62 @@ export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise
         });
         
         if (rpcError) {
-          console.error('Erro ao usar função RPC:', rpcError);
-          throw rpcError;
+          console.error('Erro ao usar função RPC para inserir transação:', rpcError);
+          throw new Error('Falha ao inserir transação via RPC, tentando método padrão');
         }
         
         console.log('Transação criada com sucesso via RPC:', rpcData);
         
-        // Buscar a transação recém-criada
-        const { data: newData, error: fetchError } = await supabase
-          .from('financial_transactions')
-          .select('*')
-          .eq('id', rpcData)
-          .single();
-          
-        if (fetchError) {
-          console.error('Erro ao buscar transação recém-criada:', fetchError);
-          throw fetchError;
-        }
+        // Converter o objeto de volta para o formato de Transacao
+        const novaTransacao: Transacao = {
+          id: rpcData as string,
+          ...transacao
+        };
         
-        console.log('Transação encontrada após criação via RPC:', newData);
-        const transacaoFinal = supabaseToTransacao(newData as TransacaoSupabase);
-        console.log('====== FIM: Criação de Transação Financeira (Supabase/RPC Brasília) ======');
-        return transacaoFinal;
-      } catch (rpcBrasiliaError) {
-        console.error('Erro ao usar função RPC para ajuste de fuso horário, tentando métodos alternativos:', rpcBrasiliaError);
+        // Adicionar também à lista local
+        adicionarTransacaoLocal(novaTransacao);
+        
+        console.log('====== FIM: Criação de Transação Financeira (RPC) ======');
+        return novaTransacao;
+      } catch (rpcError) {
+        console.error('Erro ao usar função RPC, tentando método padrão:', rpcError);
+        // Continuar para o método padrão
       }
       
-      // Se a chamada RPC falhar, continuar com o método padrão
+      // Se o RPC falhar, tentar com o método padrão
       // Converter para o formato do Supabase
-      const dadosSupabase = transacaoToSupabase(transacao);
+      const transacaoSupabase = transacaoToSupabase(transacao);
       
-      // Função para ajustar a data para o formato ISO considerando o fuso de Brasília
-      const ajustarDataParaISO = (dataStr?: string): string | null => {
-        if (!dataStr) return null;
-        
-        try {
-          // Parseamos a data assumindo que está no formato YYYY-MM-DD
-          const [ano, mes, dia] = dataStr.split('-').map(Number);
-          
-          // Criar a data no fuso de Brasília - usando apenas a data sem componente de hora
-          // Definimos como meio-dia para evitar problemas com mudança de dia devido ao fuso horário
-          const data = new Date(ano, mes - 1, dia, 12, 0, 0); // Meio-dia para evitar problemas com DST
-          
-          // Convertemos para string ISO
-          const isoDate = data.toISOString();
-          console.log(`Data convertida: ${dataStr} => ${isoDate} (hora Brasil: ${new Date(isoDate).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`);
-          
-          return isoDate;
-        } catch (error) {
-          console.error(`Erro ao ajustar data '${dataStr}':`, error);
-          return null;
-        }
-      };
-      
-      // Verificar se estamos no horário de verão (DST)
-      const agora = new Date();
-      const brasiliaOffset = -3; // Brasília é UTC-3
-      const horasOffset = agora.getTimezoneOffset() / 60;
-      console.log(`Fuso horário local: UTC${horasOffset <= 0 ? '+' : ''}${-horasOffset}, Brasília: UTC${brasiliaOffset}`);
-      
-      // Fixar o formato de data para compatibilidade com timestamp
-      const dadosCorrigidos = {
-        ...dadosSupabase,
-        data: ajustarDataParaISO(transacao.data),
-        datavencimento: ajustarDataParaISO(transacao.dataVencimento),
-        datapagamento: ajustarDataParaISO(transacao.dataPagamento)
-      };
-      
-      console.log('Dados formatados para atualização:', dadosCorrigidos);
-      
-      // Verificar se a tabela tem RLS ativado
-      try {
-        const { data: rlsData, error: rlsError } = await supabase.rpc('check_table_rls', { 
-          table_name: 'financial_transactions' 
-        });
-        
-        if (rlsError) {
-          console.warn('Erro ao verificar RLS da tabela:', rlsError.message);
-        } else {
-          console.log('Status RLS da tabela financial_transactions:', rlsData);
-        }
-      } catch (rlsCheckError) {
-        console.error('Erro ao verificar RLS:', rlsCheckError);
-        // Tenta desativar RLS temporariamente
-        try {
-          console.log('Tentando desativar RLS temporariamente...');
-          await supabase.rpc('disable_rls', { table_name: 'financial_transactions' });
-        } catch (disableError) {
-          console.error('Erro ao desativar RLS:', disableError);
-        }
-      }
-      
-      // Tentar inserir a transação usando o método padrão
       const { data, error } = await supabase
         .from('financial_transactions')
-        .insert([dadosCorrigidos])
+        .insert(transacaoSupabase)
         .select()
         .single();
         
       if (error) {
-        console.error('Erro retornado pelo Supabase:', error);
-        
-        // Se for erro de violação de políticas RLS, tentar uma abordagem alternativa
-        if (error.message.includes('violates row-level security') || 
-            error.message.includes('new row violates')) {
-          console.log('Detectado erro de RLS, tentando abordagem alternativa...');
-          
-          // Tentar usar função RPC segura que ignora RLS
-          try {
-            const { data: rpcData, error: rpcError } = await supabase
-              .rpc('insert_financial_transaction', {
-                p_descricao: dadosCorrigidos.descricao,
-                p_valor: dadosCorrigidos.valor,
-                p_data: dadosCorrigidos.data,
-                p_tipo: dadosCorrigidos.tipo,
-                p_categoria: dadosCorrigidos.categoria,
-                p_status: dadosCorrigidos.status,
-                p_datavencimento: dadosCorrigidos.datavencimento,
-                p_datapagamento: dadosCorrigidos.datapagamento,
-                p_formapagamento: dadosCorrigidos.formapagamento,
-                p_observacoes: dadosCorrigidos.observacoes,
-                p_vinculoid: dadosCorrigidos.vinculoid,
-                p_vinculotipo: dadosCorrigidos.vinculotipo,
-                p_comprovante: dadosCorrigidos.comprovante,
-                p_linkvenda: dadosCorrigidos.linkvenda
-              });
-              
-            if (rpcError) {
-              console.error('Erro também na função RPC:', rpcError);
-              throw rpcError;
-            }
-            
-            console.log('Transação criada com sucesso via RPC:', rpcData);
-            
-            // Buscar a transação recém-criada
-            const { data: newData, error: fetchError } = await supabase
-              .from('financial_transactions')
-              .select('*')
-              .eq('vinculoid', dadosCorrigidos.vinculoid)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-              
-            if (fetchError) {
-              console.error('Erro ao buscar transação recém-criada:', fetchError);
-              throw fetchError;
-            }
-            
-            console.log('Transação encontrada após criação via RPC:', newData);
-            const transacaoFinal = supabaseToTransacao(newData as TransacaoSupabase);
-            console.log('====== FIM: Criação de Transação Financeira (Supabase/RPC) ======');
-            return transacaoFinal;
-          } catch (rpcProblem) {
-            console.error('Erro completo na abordagem alternativa:', rpcProblem);
-            throw error; // Voltar ao erro original
-          }
-        } else {
-          throw error;
-        }
+        console.error('Erro ao criar transação no Supabase (método padrão):', error);
+        throw error;
       }
       
-      console.log('Transação criada com sucesso no Supabase:', data);
+      console.log('Transação criada com sucesso (método padrão):', data);
       
-      // Converter de volta para o formato da interface
-      const transacaoFinal = supabaseToTransacao(data as TransacaoSupabase);
-      console.log('Dados convertidos de volta para formato da aplicação:', transacaoFinal);
-      console.log('====== FIM: Criação de Transação Financeira (Supabase) ======');
-      return transacaoFinal;
+      // Converter o objeto de volta para o formato de Transacao
+      const novaTransacao = supabaseToTransacao(data as TransacaoSupabase);
+      
+      // Adicionar também à lista local
+      adicionarTransacaoLocal(novaTransacao);
+      
+      console.log('====== FIM: Criação de Transação Financeira (Método Padrão) ======');
+      return novaTransacao;
     } catch (error) {
-      console.error('Erro detalhado ao criar transação no Supabase:', error);
-      console.log('Fallback: Criando nos dados locais devido a erro no Supabase...');
+      console.error('Erro ao criar transação no Supabase:', error);
+      console.log('Usando fallback local para criação de transação...');
     }
   } else {
-    console.log('Supabase não está disponível, criando nos dados locais...');
+    console.log('Supabase não está disponível, criando transação localmente...');
   }
   
-  // Fallback para dados locais
-  console.log('Iniciando criação em armazenamento local...');
+  // Fallback para criação local
   const id = `TRX${String(localTransacoes.length + 1).padStart(3, '0')}`;
   
   const novaTransacao: Transacao = {
@@ -875,21 +650,36 @@ export async function createTransacao(transacao: Omit<Transacao, 'id'>): Promise
   
   console.log('Nova transação local criada:', novaTransacao);
   
+  // Adicionar ao início do array usando a função auxiliar
+  adicionarTransacaoLocal(novaTransacao);
+  
+  console.log('====== FIM: Criação de Transação Financeira (Local) ======');
+  return novaTransacao;
+}
+
+/**
+ * Função auxiliar para adicionar uma transação à lista local
+ * Garante que a transação é sempre adicionada ao início da lista e
+ * que as transações sejam salvas no localStorage
+ */
+function adicionarTransacaoLocal(transacao: Transacao): void {
+  // Remover a transação se já existir (evitar duplicatas)
+  const index = localTransacoes.findIndex(t => t.id === transacao.id);
+  if (index !== -1) {
+    localTransacoes.splice(index, 1);
+  }
+  
   // Adicionar ao início do array para aparecer primeiro nas listagens
-  localTransacoes.unshift(novaTransacao);
+  localTransacoes.unshift(transacao);
   
   console.log(`Transação adicionada aos dados locais. Total de transações: ${localTransacoes.length}`);
   
   // Persistir no localStorage
   try {
     salvarDadosNoStorage();
-    console.log('Dados salvos com sucesso no localStorage');
   } catch (storageError) {
     console.error('Erro ao salvar no localStorage:', storageError);
   }
-  
-  console.log('====== FIM: Criação de Transação Financeira (Local) ======');
-  return novaTransacao;
 }
 
 /**

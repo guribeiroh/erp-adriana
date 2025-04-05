@@ -20,6 +20,7 @@ import {
   CircleDollarSign
 } from "lucide-react";
 import { fetchTransacoes, obterResumoFinanceiro } from "@/lib/services/financialService";
+import { formatBrazilianDate } from '@/lib/utils/date';
 
 // Tipo para resumo mensal
 interface ResumoMensal {
@@ -120,7 +121,9 @@ export default function FluxoCaixaPage() {
       const resumos: ResumoMensal[] = Object.entries(transacoesPorMes)
         .map(([chave, valores]) => {
           const [ano, mes] = chave.split('-');
-          const nomeMes = new Date(parseInt(ano), parseInt(mes) - 1, 1).toLocaleString('pt-BR', { month: 'long' });
+          // Criar data considerando o fuso horário de Brasília
+          const dataBase = new Date(`${ano}-${mes}-01T12:00:00-03:00`);
+          const nomeMes = dataBase.toLocaleString('pt-BR', { month: 'long' });
           
           return {
             mes: `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`,

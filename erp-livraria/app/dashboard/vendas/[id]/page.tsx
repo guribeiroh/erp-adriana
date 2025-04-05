@@ -28,6 +28,7 @@ import { fetchSaleDetails, updateSalePaymentStatus } from "@/lib/services/pdvSer
 import { supabase } from "@/lib/supabase/client";
 import { jsPDF } from "jspdf";
 import 'jspdf-autotable';
+import { formatBrazilianDate, formatBrazilianTime, formatBrazilianDateTime } from "@/lib/utils/date";
 
 export default function DetalhesVendaPage() {
   const params = useParams();
@@ -120,19 +121,12 @@ export default function DetalhesVendaPage() {
   
   // Formatador de data
   const formatarData = (dataString: string) => {
-    return new Date(dataString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return formatBrazilianDate(dataString);
   };
   
   // Formatador de hora
   const formatarHora = (dataString: string) => {
-    return new Date(dataString).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatBrazilianTime(dataString);
   };
   
   // Formatador de valor monetário

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { fetchCustomerById, deleteCustomer, fetchCustomerPurchaseSummary, CustomerPurchaseSummary } from "@/lib/services/customerService";
 import { Customer } from "@/models/database.types";
+import { formatBrazilianDate } from '@/lib/utils/date';
 
 // Função para formatar valores monetários
 const formatarMoeda = (valor: number | null | undefined): string => {
@@ -137,11 +138,10 @@ export default function DetalheClientePage() {
     }
   };
 
-  // Formatador de data
-  const formatarData = (dataString: string | null | undefined) => {
-    if (!dataString) return "N/A";
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
+  // Formatadores
+  const formatarData = (data: string | null | undefined) => {
+    if (!data) return "N/A";
+    return formatBrazilianDate(data);
   };
 
   // Renderizar estado de carregamento

@@ -270,14 +270,37 @@ function FinanceiroPage() {
       setAtualizando(true);
       setErro(null);
       
+      // Solicitar que as transações já venham ordenadas por data mais recente
       const result = await fetchTransacoes({
         limit: 100 // Aumentar o limite para garantir que todas as transações recentes sejam carregadas
       });
       
-      setTransacoes(result.transacoes);
+      // Garantir ordenação por data mais recente, mesmo após carregar do backend
+      const transacoesOrdenadas = [...result.transacoes].sort((a, b) => {
+        // Comparar por data primeiro
+        const dataA = new Date(`${a.data}T12:00:00-03:00`);
+        const dataB = new Date(`${b.data}T12:00:00-03:00`);
+        const dateComparison = dataB.getTime() - dataA.getTime();
+        
+        // Se as datas forem iguais, usar o ID como critério de desempate
+        if (dateComparison === 0) {
+          // Extrair o número do final do ID (ex: TRX123 -> 123)
+          const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+          return numB - numA;
+        }
+        
+        return dateComparison;
+      });
+      
+      setTransacoes(transacoesOrdenadas);
       setSaldoAtual(result.currentBalance);
       
-      console.log('Transações carregadas:', result.transacoes.length);
+      console.log('Transações carregadas e ordenadas:', transacoesOrdenadas.length);
+      if (transacoesOrdenadas.length > 0) {
+        console.log('Primeira transação (mais recente):', transacoesOrdenadas[0]);
+        console.log('Última transação (mais antiga):', transacoesOrdenadas[transacoesOrdenadas.length - 1]);
+      }
     } catch (error) {
       console.error("Erro ao carregar transações:", error);
       setErro(error instanceof Error ? error.message : "Erro desconhecido");

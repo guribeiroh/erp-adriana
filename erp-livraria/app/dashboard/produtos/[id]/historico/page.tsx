@@ -22,6 +22,7 @@ import {
 import { fetchProductSaleHistory } from "@/lib/services/pdvService";
 import { fetchBookById } from "@/lib/services/pdvService";
 import { Book } from "@/models/database.types";
+import { formatBrazilianDate, formatBrazilianDateTime } from '@/lib/utils/date';
 
 // Interface para item de venda
 interface SaleHistoryItem {
@@ -152,13 +153,14 @@ export default function HistoricoVendasProdutoPage() {
     });
   };
   
-  // Formatar data
-  const formatarData = (dataString: string): string => {
-    return new Date(dataString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+  // Formatador de data
+  const formatarData = (dataString: string) => {
+    return formatBrazilianDate(dataString);
+  };
+  
+  // Formatador de data e hora
+  const formatarDataHora = (dataString: string) => {
+    return formatBrazilianDateTime(dataString);
   };
   
   // Formatar método de pagamento

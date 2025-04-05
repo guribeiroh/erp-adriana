@@ -1,11 +1,88 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { BookOpen, DollarSign, ShoppingCart, Users, ArrowRight, Clock, ArrowUpRight, ArrowDownRight, Plus, Calendar, Package } from "lucide-react";
 import Link from "next/link";
 import PDVButton from "@/components/pdv/PDVButton";
+import { DashboardSummary, ActivityItem, getDashboardSummary } from "@/lib/services/dashboardService";
 
 export default function DashboardPage() {
+  // Estado para armazenar os dados do dashboard
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Função para formatar valores monetários
+  const formatCurrency = (value: number): string => {
+    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Efeito para carregar os dados do dashboard
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getDashboardSummary();
+        console.log('Dados do dashboard carregados:', data);
+        setDashboardData(data);
+      } catch (err) {
+        console.error('Erro ao carregar dados do dashboard:', err);
+        setError('Não foi possível carregar os dados do dashboard. Tente novamente mais tarde.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
+
+  // Determinar o tipo de tendência para exibição
+  const getTrendType = (trend: number): 'positive' | 'negative' | 'neutral' => {
+    if (trend > 0) return 'positive';
+    if (trend < 0) return 'negative';
+    return 'neutral';
+  };
+
+  // Formatação do valor de tendência
+  const formatTrend = (trend: number): string => {
+    return trend > 0 ? `+${trend}%` : `${trend}%`;
+  };
+
+  // Renderizar estado de carregamento
+  if (loading) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-12 w-12 rounded-full bg-primary-200 mb-4"></div>
+            <div className="h-4 w-48 bg-neutral-200 rounded mb-2"></div>
+            <div className="h-3 w-32 bg-neutral-100 rounded"></div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Renderizar erro
+  if (error) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="bg-red-50 p-4 rounded-lg border border-red-200 text-red-800">
+          <h3 className="font-medium mb-2">Erro ao carregar dados</h3>
+          <p>{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition"
+            onClick={() => window.location.reload()}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-8">
@@ -23,78 +100,58 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard 
             title="Vendas Hoje" 
-            value="R$ 1.250,00" 
+            value={formatCurrency(dashboardData?.salesTotal.today || 0)} 
             icon={ShoppingCart} 
-            trend="+15%" 
-            trendType="positive"
+            trend={formatTrend(dashboardData?.salesTotal.trend || 0)} 
+            trendType={getTrendType(dashboardData?.salesTotal.trend || 0)}
             href="/dashboard/vendas"
           />
           <SummaryCard 
             title="Clientes Ativos" 
-            value="143" 
+            value={String(dashboardData?.customers.active || 0)} 
             icon={Users} 
-            trend="+5%" 
-            trendType="positive"
+            trend={formatTrend(dashboardData?.customers.trend || 0)} 
+            trendType={getTrendType(dashboardData?.customers.trend || 0)}
             href="/dashboard/clientes"
           />
           <SummaryCard 
             title="Livros em Estoque" 
-            value="865" 
+            value={String(dashboardData?.inventory.totalBooks || 0)} 
             icon={BookOpen} 
-            trend="-2%" 
-            trendType="negative"
+            trend={formatTrend(dashboardData?.inventory.trend || 0)} 
+            trendType={getTrendType(dashboardData?.inventory.trend || 0)}
             href="/dashboard/estoque"
           />
           <SummaryCard 
             title="Produtos Cadastrados" 
-            value="215" 
+            value={String(dashboardData?.inventory.totalProducts || 0)} 
             icon={Package} 
-            trend="+8%" 
-            trendType="positive"
+            trend={formatTrend(dashboardData?.inventory.trend || 8)} 
+            trendType={getTrendType(dashboardData?.inventory.trend || 8)}
             href="/dashboard/produtos"
           />
         </div>
         
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {/* Atividades recentes */}
+          {/* Últimas vendas */}
           <div className="col-span-1 lg:col-span-2 rounded-xl border border-neutral-200 bg-white p-6 shadow-card">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-neutral-900">Atividades Recentes</h2>
-              <Link href="/dashboard/atividades" className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700">
-                Ver todas
-                <ArrowRight className="h-3 w-3" />
-              </Link>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-neutral-900">Últimas Vendas</h2>
             </div>
 
             <div className="space-y-4">
-              <ActivityItem 
-                icon={ShoppingCart}
-                iconColor="bg-green-100 text-green-600"
-                title="Venda Concluída" 
-                description="Venda de R$ 85,90 para cliente Maria Silva"
-                time="15 minutos atrás"
-              />
-              <ActivityItem 
-                icon={BookOpen}
-                iconColor="bg-blue-100 text-blue-600"
-                title="Estoque Atualizado" 
-                description="15 unidades de 'O Senhor dos Anéis' adicionadas"
-                time="2 horas atrás"
-              />
-              <ActivityItem 
-                icon={Package}
-                iconColor="bg-indigo-100 text-indigo-600"
-                title="Novo Produto Cadastrado" 
-                description="Livro 'Duna' adicionado ao catálogo"
-                time="3 horas atrás"
-              />
-              <ActivityItem 
-                icon={Users}
-                iconColor="bg-amber-100 text-amber-600"
-                title="Novo Cliente" 
-                description="João Pereira cadastrado como novo cliente"
-                time="1 dia atrás"
-              />
+              {dashboardData?.recentActivities.map((activity) => (
+                <DynamicActivityItem 
+                  key={activity.id}
+                  activity={activity}
+                />
+              ))}
+
+              {(!dashboardData?.recentActivities || dashboardData.recentActivities.length === 0) && (
+                <div className="text-center py-6 text-neutral-500">
+                  <p>Nenhuma atividade recente registrada.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -129,20 +186,20 @@ export default function DashboardPage() {
               />
             </div>
 
+            {/* Status de estoque baixo */}
             <div className="mt-6 pt-6 border-t border-neutral-200">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-neutral-700">
-                <Calendar className="h-4 w-4 text-neutral-500" />
-                Próximos Eventos
+                <BookOpen className="h-4 w-4 text-neutral-500" />
+                Produtos com Estoque Baixo
               </h3>
-              <div className="space-y-3">
-                <div className="rounded-lg bg-neutral-50 p-3">
-                  <p className="text-xs font-medium text-neutral-500">Amanhã, 10:00</p>
-                  <p className="text-sm font-medium text-neutral-900">Lançamento do livro "O Futuro da Ficção"</p>
-                </div>
-                <div className="rounded-lg bg-neutral-50 p-3">
-                  <p className="text-xs font-medium text-neutral-500">15/04, 15:00</p>
-                  <p className="text-sm font-medium text-neutral-900">Inventário mensal</p>
-                </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-800">
+                  {dashboardData?.inventory.lowStock || 0} produtos com estoque baixo
+                </p>
+                <Link href="/dashboard/estoque" 
+                  className="text-xs text-amber-600 hover:text-amber-700 font-medium mt-1 inline-block">
+                  Verificar agora
+                </Link>
               </div>
             </div>
           </div>
@@ -221,28 +278,35 @@ function QuickAccessButton({ label, href, icon: Icon, iconColor, highlight = fal
   );
 }
 
-interface ActivityItemProps {
-  icon: React.ElementType;
-  iconColor: string;
-  title: string;
-  description: string;
-  time: string;
-}
+// Componente para renderizar atividades dinamicamente com base no tipo
+function DynamicActivityItem({ activity }: { activity: ActivityItem }) {
+  // Mapear ícones do tipo string para componentes React
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'ShoppingCart': return ShoppingCart;
+      case 'BookOpen': return BookOpen;
+      case 'Users': return Users;
+      case 'Package': return Package;
+      case 'DollarSign': return DollarSign;
+      default: return ArrowRight;
+    }
+  };
 
-function ActivityItem({ icon: Icon, iconColor, title, description, time }: ActivityItemProps) {
+  const Icon = getIcon(activity.icon);
+
   return (
-    <div className="flex items-start gap-4">
-      <div className={`mt-0.5 rounded-full p-2 ${iconColor}`}>
+    <Link href={activity.link || '#'} className="flex items-start gap-4 hover:bg-neutral-50 p-2 -mx-2 rounded-lg transition-colors">
+      <div className={`mt-0.5 rounded-full p-2 ${activity.iconColor}`}>
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1">
-        <h3 className="text-sm font-medium text-neutral-900">{title}</h3>
-        <p className="text-sm text-neutral-600">{description}</p>
+        <h3 className="text-sm font-medium text-neutral-900">{activity.title}</h3>
+        <p className="text-sm text-neutral-600">{activity.description}</p>
         <span className="mt-1 inline-block text-xs text-neutral-500">
           <Clock className="mr-1 inline h-3 w-3" />
-          {time}
+          {activity.time}
         </span>
       </div>
-    </div>
+    </Link>
   );
 } 
