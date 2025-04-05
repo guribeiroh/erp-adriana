@@ -15,10 +15,10 @@ import {
 
 export default function RelatoriosPage() {
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-neutral-900">Relatórios</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-gray-900">Relatórios</h1>
+        <p className="mt-1 text-sm text-gray-500">
           Acesse os relatórios gerenciais para análise do desempenho do negócio
         </p>
       </header>
@@ -61,8 +61,8 @@ export default function RelatoriosPage() {
         />
       </div>
 
-      <div className="mt-10">
-        <h2 className="text-lg font-medium text-neutral-900 mb-4">Gráficos e Dashboards</h2>
+      <div className="mt-12">
+        <h2 className="text-lg font-medium text-gray-900 mb-6">Gráficos e Dashboards</h2>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Dashboard de Vendas */}
           <DashboardCard 
@@ -90,17 +90,17 @@ export default function RelatoriosPage() {
         </div>
       </div>
 
-      <div className="mt-10">
-        <h2 className="text-lg font-medium text-neutral-900 mb-4">Relatórios Programados</h2>
-        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-          <div className="px-6 py-5 border-b border-neutral-200 flex justify-between items-center">
-            <h3 className="font-medium text-neutral-900">Relatórios Agendados</h3>
-            <button className="bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700">
+      <div className="mt-12">
+        <h2 className="text-lg font-medium text-gray-900 mb-6">Relatórios Programados</h2>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="font-medium text-gray-900">Relatórios Agendados</h3>
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
               Agendar Novo Relatório
             </button>
           </div>
           
-          <div className="divide-y divide-neutral-200">
+          <div className="divide-y divide-gray-200">
             <ScheduledReport 
               title="Relatório Mensal de Vendas"
               frequency="Mensal (Todo dia 1)" 
@@ -140,14 +140,14 @@ function ReportCard({ title, description, icon: Icon, href, iconColor }: ReportC
   return (
     <Link 
       href={href}
-      className="block bg-white rounded-lg border border-neutral-200 p-6 transition-shadow hover:shadow-md"
+      className="block bg-white rounded-lg border border-gray-200 shadow-sm p-6 transition-shadow hover:shadow-md"
     >
       <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${iconColor}`}>
         <Icon className="h-6 w-6" />
       </div>
-      <h3 className="text-lg font-medium text-neutral-900 mb-2">{title}</h3>
-      <p className="text-sm text-neutral-600">{description}</p>
-      <div className="mt-4 flex items-center text-primary-600 text-sm font-medium">
+      <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+      <p className="text-sm text-gray-600">{description}</p>
+      <div className="mt-4 flex items-center text-blue-600 text-sm font-medium">
         Ver relatório
         <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -168,14 +168,14 @@ function DashboardCard({ title, description, icon: Icon, href }: DashboardCardPr
   return (
     <Link 
       href={href}
-      className="flex items-start p-5 bg-white rounded-lg border border-neutral-200 transition-shadow hover:shadow-md"
+      className="flex items-start p-5 bg-white rounded-lg border border-gray-200 shadow-sm transition-shadow hover:shadow-md"
     >
-      <div className="mr-4 bg-neutral-100 rounded-lg p-3">
-        <Icon className="h-5 w-5 text-neutral-700" />
+      <div className="mr-4 bg-gray-100 rounded-lg p-3">
+        <Icon className="h-5 w-5 text-gray-700" />
       </div>
       <div>
-        <h3 className="text-base font-medium text-neutral-900 mb-1">{title}</h3>
-        <p className="text-sm text-neutral-600">{description}</p>
+        <h3 className="text-base font-medium text-gray-900 mb-1">{title}</h3>
+        <p className="text-sm text-gray-600">{description}</p>
       </div>
     </Link>
   );
@@ -192,21 +192,21 @@ function ScheduledReport({ title, frequency, lastRun, recipients }: ScheduledRep
   return (
     <div className="px-6 py-4 flex items-center justify-between flex-wrap">
       <div className="space-y-1 mb-2 sm:mb-0">
-        <h4 className="font-medium text-neutral-900">{title}</h4>
+        <h4 className="font-medium text-gray-900">{title}</h4>
         <div className="flex flex-col sm:flex-row sm:space-x-4">
-          <p className="text-sm text-neutral-500 flex items-center">
+          <p className="text-sm text-gray-500 flex items-center">
             <Calendar className="mr-1 h-3.5 w-3.5" />
             {frequency}
           </p>
-          <p className="text-sm text-neutral-500">Última execução: {lastRun}</p>
+          <p className="text-sm text-gray-500">Última execução: {lastRun}</p>
         </div>
-        <p className="text-xs text-neutral-500">Destinatários: {recipients}</p>
+        <p className="text-xs text-gray-500">Destinatários: {recipients}</p>
       </div>
       <div className="flex space-x-2">
-        <button className="text-neutral-700 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded text-xs font-medium">
+        <button className="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-medium">
           Editar
         </button>
-        <button className="text-neutral-700 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded text-xs font-medium">
+        <button className="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-medium">
           Executar Agora
         </button>
       </div>
