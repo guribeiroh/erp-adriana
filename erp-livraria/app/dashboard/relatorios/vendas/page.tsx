@@ -113,23 +113,23 @@ export default function RelatorioVendasPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
       {/* Header com navegação e título */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <Link href="/dashboard/relatorios" className="inline-flex items-center text-sm text-neutral-500 hover:text-neutral-700 mb-2">
+          <Link href="/dashboard/relatorios" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-2">
             <ArrowLeft className="mr-1 h-4 w-4" />
             Voltar para Relatórios
           </Link>
-          <h1 className="text-2xl font-bold text-neutral-900">Relatório de Vendas</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <h1 className="text-2xl font-bold text-gray-900">Relatório de Vendas</h1>
+          <p className="mt-1 text-sm text-gray-500">
             Análise de desempenho de vendas por período, categoria e produtos
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50"
+            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             <Filter className="h-4 w-4" />
             Filtros
@@ -137,14 +137,14 @@ export default function RelatorioVendasPage() {
           </button>
           <button 
             onClick={loadReportData}
-            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50"
+            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             <RefreshCcw className="h-4 w-4" />
             Atualizar
           </button>
           <button 
             onClick={exportCSV}
-            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-md hover:bg-primary-100"
+            className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
           >
             <Download className="h-4 w-4" />
             Exportar
@@ -154,13 +154,13 @@ export default function RelatorioVendasPage() {
 
       {/* Área de filtros */}
       {showFilters && (
-        <div className="bg-white p-4 rounded-lg border border-neutral-200 space-y-4">
-          <h3 className="font-medium text-neutral-900">Filtros</h3>
+        <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4 shadow-sm">
+          <h3 className="font-medium text-gray-900">Filtros</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Período</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Período</label>
               <select 
-                className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                 value={filters.timeRange}
                 onChange={(e) => handleFilterChange('timeRange', e.target.value as TimeRange)}
               >
@@ -177,19 +177,19 @@ export default function RelatorioVendasPage() {
             {filters.timeRange === 'custom' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">Data Início</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
                   <input 
                     type="date" 
-                    className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     value={filters.startDate || ''}
                     onChange={(e) => handleFilterChange('startDate', e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">Data Fim</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
                   <input 
                     type="date" 
-                    className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     value={filters.endDate || ''}
                     onChange={(e) => handleFilterChange('endDate', e.target.value)}
                   />
@@ -198,10 +198,10 @@ export default function RelatorioVendasPage() {
             )}
             
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Categoria</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
               <input 
                 type="text" 
-                className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                 placeholder="Todas as categorias"
                 value={filters.category || ''}
                 onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -211,13 +211,13 @@ export default function RelatorioVendasPage() {
           <div className="flex justify-end gap-2 mt-4">
             <button 
               onClick={() => setShowFilters(false)}
-              className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
               Cancelar
             </button>
             <button 
               onClick={handleApplyFilters}
-              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
             >
               Aplicar Filtros
             </button>
@@ -228,8 +228,8 @@ export default function RelatorioVendasPage() {
       {/* Estado de carregando */}
       {isLoading && (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
-          <span className="ml-3 text-neutral-600">Carregando relatório...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Carregando relatório...</span>
         </div>
       )}
       
@@ -250,11 +250,11 @@ export default function RelatorioVendasPage() {
       {!isLoading && !error && reportData && (
         <>
           {/* Cabeçalho do relatório */}
-          <div className="bg-white rounded-lg border border-neutral-200 p-5">
-            <div className="flex items-center gap-2 text-sm text-neutral-500 mb-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
               <Calendar className="h-4 w-4" />
               <span>Período: {reportData.period}</span>
-              <span className="text-neutral-400">•</span>
+              <span className="text-gray-400">•</span>
               <span>{getTimeRangeLabel(filters.timeRange)}</span>
             </div>
             
@@ -289,8 +289,8 @@ export default function RelatorioVendasPage() {
           {/* Gráficos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gráfico de vendas por data */}
-            <div className="bg-white rounded-lg border border-neutral-200 p-5">
-              <h3 className="text-lg font-medium text-neutral-900 mb-4">Vendas por Data</h3>
+            <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Vendas por Data</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={reportData.salesByDate}>
@@ -305,8 +305,8 @@ export default function RelatorioVendasPage() {
             </div>
             
             {/* Gráfico de vendas por categoria */}
-            <div className="bg-white rounded-lg border border-neutral-200 p-5">
-              <h3 className="text-lg font-medium text-neutral-900 mb-4">Vendas por Categoria</h3>
+            <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Vendas por Categoria</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -334,39 +334,39 @@ export default function RelatorioVendasPage() {
           </div>
           
           {/* Tabela de vendas por categoria */}
-          <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-neutral-200">
-              <h3 className="font-medium text-neutral-900">Detalhamento por Categoria</h3>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">Detalhamento por Categoria</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Categoria
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Valor Total
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Participação (%)
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-neutral-200">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {reportData.salesByCategory.map((category, idx) => (
-                    <tr key={idx} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900">
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {category.category}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {formatCurrency(category.value)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {category.percentage.toFixed(2)}%
-                        <div className="w-full bg-neutral-200 rounded-full h-1.5 mt-1">
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                           <div
-                            className="bg-primary-600 h-1.5 rounded-full"
+                            className="bg-blue-600 h-1.5 rounded-full"
                             style={{ width: `${category.percentage}%` }}
                           ></div>
                         </div>
@@ -374,15 +374,15 @@ export default function RelatorioVendasPage() {
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-neutral-50">
+                <tfoot className="bg-gray-50">
                   <tr>
-                    <th scope="row" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    <th scope="row" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-neutral-900">
+                    <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(reportData.totalSales)}
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-neutral-900">
+                    <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       100%
                     </td>
                   </tr>
@@ -405,11 +405,11 @@ interface SummaryCardProps {
 
 function SummaryCard({ title, value, icon: Icon, iconColor }: SummaryCardProps) {
   return (
-    <div className="bg-neutral-50 rounded-lg p-5">
+    <div className="bg-gray-50 rounded-lg p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-neutral-500">{title}</p>
-          <p className="text-2xl font-semibold text-neutral-900 mt-1">{value}</p>
+          <p className="text-sm text-gray-500">{title}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-1">{value}</p>
         </div>
         <div className={`rounded-lg p-3 ${iconColor}`}>
           <Icon className="h-6 w-6" />
