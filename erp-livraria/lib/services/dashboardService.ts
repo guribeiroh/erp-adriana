@@ -236,7 +236,7 @@ async function getCustomerSummary(): Promise<DashboardSummary['customers']> {
 }
 
 /**
- * Obtém resumo de estoque/produtos
+ * Obtém resumo de estoque/livros
  */
 async function getInventorySummary(): Promise<DashboardSummary['inventory']> {
   try {
@@ -260,14 +260,14 @@ async function getInventorySummary(): Promise<DashboardSummary['inventory']> {
       throw new Error('Falha ao obter dados de livros');
     }
 
-    // Contar produtos diversos
-    const { count: productsCount, error: productsError } = await supabase
+    // Contar outros livros diversos
+    const { count: otherBooksCount, error: otherBooksError } = await supabase
       .from('products')
       .select('*', { count: 'exact', head: true });
 
-    if (productsError) {
-      console.error('Erro ao consultar produtos:', productsError);
-      throw new Error('Falha ao obter dados de produtos');
+    if (otherBooksError) {
+      console.error('Erro ao consultar outros livros:', otherBooksError);
+      throw new Error('Falha ao obter dados de outros livros');
     }
 
     // Calcular estatísticas do estoque
@@ -275,8 +275,8 @@ async function getInventorySummary(): Promise<DashboardSummary['inventory']> {
     const totalUniqueBooks = books?.length || 0;
     const lowStockCount = books?.filter(book => (book.quantity || 0) <= (book.minimum_stock || 5)).length || 0;
 
-    // Total de produtos = livros únicos + outros produtos
-    const totalProducts = totalUniqueBooks + (productsCount || 0);
+    // Total de livros = livros únicos + outros livros
+    const totalProducts = totalUniqueBooks + (otherBooksCount || 0);
 
     // Tendência é uma estimativa para exemplo
     const trend = -2; // Valor fixo para exemplo, indicando redução no estoque

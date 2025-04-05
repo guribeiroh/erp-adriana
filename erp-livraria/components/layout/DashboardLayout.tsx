@@ -19,18 +19,20 @@ import {
   Search,
   Package,
   User,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 
-// Lista de links da navegação
-const navItems = [
-  { href: '/dashboard', label: 'Início', icon: Home },
+// Array de links do menu
+const menuLinks = [
+  { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/dashboard/vendas', label: 'Vendas', icon: ShoppingCart },
-  { href: '/dashboard/produtos', label: 'Produtos', icon: Package },
   { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
   { href: '/dashboard/estoque', label: 'Estoque', icon: BookOpen },
+  { href: '/dashboard/produtos', label: 'Livros', icon: Package },
   { href: '/dashboard/financeiro', label: 'Financeiro', icon: DollarSign },
-  { href: '/dashboard/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { href: '/dashboard/relatorios', label: 'Relatórios', icon: FileText },
+  { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 interface DashboardLayoutProps {
@@ -210,7 +212,7 @@ function DesktopNavigation() {
   return (
     <nav>
       <ul className="space-y-1">
-        {navItems.map((item) => (
+        {menuLinks.map((item) => (
           <li key={item.href}>
             <Link
               href={item.href}
@@ -239,7 +241,7 @@ function MobileNavigation() {
   return (
     <nav>
       <ul className="space-y-1">
-        {navItems.map((item) => (
+        {menuLinks.map((item) => (
           <li key={item.href}>
             <Link
               href={item.href}

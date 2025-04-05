@@ -123,7 +123,7 @@ export default function DashboardPage() {
             href="/dashboard/estoque"
           />
           <SummaryCard 
-            title="Produtos Cadastrados" 
+            title="Livros Cadastrados" 
             value={String(dashboardData?.inventory.totalProducts || 0)} 
             icon={Package} 
             trend={formatTrend(dashboardData?.inventory.trend || 8)} 
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                 iconColor="bg-amber-100 text-amber-600"
               />
               <QuickAccessButton 
-                label="Novo Produto" 
+                label="Novo Livro" 
                 href="/dashboard/produtos/novo"
                 icon={Package}
                 iconColor="bg-indigo-100 text-indigo-600"
@@ -190,11 +190,11 @@ export default function DashboardPage() {
             <div className="mt-6 pt-6 border-t border-neutral-200">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-neutral-700">
                 <BookOpen className="h-4 w-4 text-neutral-500" />
-                Produtos com Estoque Baixo
+                Livros com Estoque Baixo
               </h3>
               <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
                 <p className="text-sm font-medium text-amber-800">
-                  {dashboardData?.inventory.lowStock || 0} produtos com estoque baixo
+                  {dashboardData?.inventory.lowStock || 0} livros com estoque baixo
                 </p>
                 <Link href="/dashboard/estoque" 
                   className="text-xs text-amber-600 hover:text-amber-700 font-medium mt-1 inline-block">
