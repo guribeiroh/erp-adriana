@@ -6,8 +6,7 @@ import {
   ShoppingCart, 
   BookOpen, 
   DollarSign, 
-  Users, 
-  Calendar
+  Users
 } from 'lucide-react';
 
 export default function RelatoriosPage() {
@@ -57,41 +56,6 @@ export default function RelatoriosPage() {
           iconColor="bg-amber-100 text-amber-600"
         />
       </div>
-
-      <div className="mt-12">
-        <h2 className="text-lg font-medium text-gray-900 mb-6">Relatórios Programados</h2>
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-medium text-gray-900">Relatórios Agendados</h3>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-              Agendar Novo Relatório
-            </button>
-          </div>
-          
-          <div className="divide-y divide-gray-200">
-            <ScheduledReport 
-              title="Relatório Mensal de Vendas"
-              frequency="Mensal (Todo dia 1)" 
-              lastRun="01/04/2025"
-              recipients="admin@livraria.com, gerente@livraria.com"
-            />
-            
-            <ScheduledReport 
-              title="Relatório Semanal de Estoque"
-              frequency="Semanal (Toda segunda-feira)" 
-              lastRun="01/04/2025"
-              recipients="estoque@livraria.com"
-            />
-            
-            <ScheduledReport 
-              title="Relatório Diário de Vendas"
-              frequency="Diário (23:00)" 
-              lastRun="05/04/2025"
-              recipients="vendas@livraria.com"
-            />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -122,38 +86,5 @@ function ReportCard({ title, description, icon: Icon, href, iconColor }: ReportC
         </svg>
       </div>
     </Link>
-  );
-}
-
-interface ScheduledReportProps {
-  title: string;
-  frequency: string;
-  lastRun: string;
-  recipients: string;
-}
-
-function ScheduledReport({ title, frequency, lastRun, recipients }: ScheduledReportProps) {
-  return (
-    <div className="px-6 py-4 flex items-center justify-between flex-wrap">
-      <div className="space-y-1 mb-2 sm:mb-0">
-        <h4 className="font-medium text-gray-900">{title}</h4>
-        <div className="flex flex-col sm:flex-row sm:space-x-4">
-          <p className="text-sm text-gray-500 flex items-center">
-            <Calendar className="mr-1 h-3.5 w-3.5" />
-            {frequency}
-          </p>
-          <p className="text-sm text-gray-500">Última execução: {lastRun}</p>
-        </div>
-        <p className="text-xs text-gray-500">Destinatários: {recipients}</p>
-      </div>
-      <div className="flex space-x-2">
-        <button className="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-medium">
-          Editar
-        </button>
-        <button className="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-medium">
-          Executar Agora
-        </button>
-      </div>
-    </div>
   );
 } 
