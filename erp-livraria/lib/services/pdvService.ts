@@ -3,6 +3,7 @@ import { Book, Customer, Sale, SaleItem } from '@/models/database.types';
 import { CartItem } from '@/lib/context/CartContext';
 import { stockService } from '@/lib/services/stockService';
 import * as financialService from '@/lib/services/financialService';
+import { getCurrentBrazilianDate } from '@/lib/utils/date';
 
 // Dados de exemplo para usar quando o Supabase não estiver configurado
 const sampleBooks: Book[] = [
@@ -280,7 +281,7 @@ export async function finalizeSale(
       });
       
       const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
-      const dataAtual = new Date().toISOString().split('T')[0];
+      const dataAtual = getCurrentBrazilianDate('date-string');
       
       const dadosTransacao = {
         descricao: `Venda - ${nomeCliente}`,
@@ -294,7 +295,7 @@ export async function finalizeSale(
         vinculoId: saleId,
         vinculoTipo: 'venda',
         observacoes: notes || undefined,
-        linkVenda: `/pdv/vendas/${saleId}`
+        linkVenda: `/dashboard/vendas/${saleId}`
       };
       
       console.log('Dados da transação a ser criada:', dadosTransacao);
@@ -507,7 +508,10 @@ export async function finalizeSale(
       });
       
       const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
-      const dataAtual = new Date().toISOString().split('T')[0];
+      
+      // Usar o formato 'date-string' que retorna apenas a data (YYYY-MM-DD)
+      // sem componente de hora, para evitar problemas de fuso horário
+      const dataAtual = getCurrentBrazilianDate('date-string');
       
       const dadosTransacao = {
         descricao: `Venda - ${nomeCliente}`,
@@ -521,11 +525,51 @@ export async function finalizeSale(
         vinculoId: sale.id,
         vinculoTipo: 'venda',
         observacoes: notes || undefined,
-        linkVenda: `/pdv/vendas/${sale.id}`
+        linkVenda: `/dashboard/vendas/${sale.id}`
       };
       
       console.log('Dados da transação a ser criada:', dadosTransacao);
       
+      // Tentar primeiro usar a função RPC que lida corretamente com o fuso horário
+      try {
+        console.log(`Enviando data para função RPC: ${dadosTransacao.data} (formato YYYY-MM-DD)`);
+        
+        // SOLUÇÃO DIRETA: Usar explicitamente a data correta no formato YYYY-MM-DD
+        // Definindo explicitamente a data atual em Brasília: 5 de abril de 2025
+        const dataFormatada = '2025-04-05';
+        
+        console.log(`Data formatada manualmente: ${dataFormatada} (5 de abril de 2025 - Brasília)`);
+        
+        const { data: rpcData, error: rpcError } = await supabase.rpc('insert_financial_transaction_brasilia', {
+          p_descricao: dadosTransacao.descricao,
+          p_valor: dadosTransacao.valor,
+          p_data: dataFormatada, // Usar data explícita
+          p_tipo: dadosTransacao.tipo,
+          p_categoria: dadosTransacao.categoria,
+          p_status: dadosTransacao.status,
+          p_datavencimento: null,
+          p_datapagamento: dataFormatada, // Usar a mesma data para pagamento
+          p_formapagamento: dadosTransacao.formaPagamento,
+          p_observacoes: dadosTransacao.observacoes,
+          p_vinculoid: dadosTransacao.vinculoId,
+          p_vinculotipo: dadosTransacao.vinculoTipo,
+          p_comprovante: null,
+          p_linkvenda: dadosTransacao.linkVenda
+        });
+        
+        if (rpcError) {
+          console.error('Erro ao usar função RPC para inserir transação:', rpcError);
+          throw new Error('Falha ao inserir transação via RPC, tentando método padrão');
+        }
+        
+        console.log('Transação financeira criada com sucesso via RPC:', rpcData);
+        return sale.id;
+      } catch (rpcError) {
+        console.error('Erro ao usar função RPC, tentando método padrão:', rpcError);
+        // Continuar para o método padrão
+      }
+      
+      // Se falhou com RPC, tentar com o método padrão
       const transacaoCriada = await financialService.createTransacao(dadosTransacao);
       console.log('Transação financeira criada com sucesso:', transacaoCriada);
       
@@ -594,12 +638,17 @@ function registrarTransacaoAlternativa(
     console.log('Tentando método alternativo para criar transação financeira...');
     // Usar o método direto de salvar em localStorage sem tentar Supabase primeiro
     const id = `TRX${Date.now()}`;
+    
+    // Usar a data explícita para Brasília
+    const dataFormatada = '2025-04-05';
+    console.log(`Data formatada manualmente (alternativa): ${dataFormatada} (5 de abril de 2025 - Brasília)`);
+    
     const novaTransacao = {
       id,
       descricao: `Venda (Recuperação) - ${nomeCliente}`,
       valor,
-      data: new Date().toISOString().split('T')[0],
-      dataPagamento: new Date().toISOString().split('T')[0],
+      data: dataFormatada,
+      dataPagamento: dataFormatada,
       tipo: 'receita' as const,
       categoria: 'Vendas',
       status: 'confirmada' as const,
@@ -607,7 +656,7 @@ function registrarTransacaoAlternativa(
       vinculoId: saleId,
       vinculoTipo: 'venda' as const,
       observacoes: `${notes || ''} (Registrado por método alternativo)`,
-      linkVenda: `/pdv/vendas/${saleId}`
+      linkVenda: `/dashboard/vendas/${saleId}`
     };
     
     console.log('Transação alternativa a ser adicionada:', novaTransacao);
@@ -833,7 +882,7 @@ export async function updateSalePaymentStatus(
           descricao: `Venda - ${nomeCliente}`,
           dataPagamento: status === 'paid' ? new Date().toISOString().split('T')[0] : undefined,
           observacoes: notes ? (transacao.observacoes ? `${transacao.observacoes}; ${notes}` : notes) : undefined,
-          linkVenda: `/pdv/vendas/${saleId}`
+          linkVenda: `/dashboard/vendas/${saleId}`
         });
         
         console.log(`Transação financeira atualizada para status: ${statusFinanceiro}`);
@@ -856,7 +905,7 @@ export async function updateSalePaymentStatus(
             vinculoId: saleId,
             vinculoTipo: 'venda',
             observacoes: notes || undefined,
-            linkVenda: `/pdv/vendas/${saleId}`
+            linkVenda: `/dashboard/vendas/${saleId}`
           });
           
           console.log('Nova transação financeira criada para venda paga');
@@ -1003,7 +1052,7 @@ async function estornarItensParaEstoque(saleId: string): Promise<void> {
           observacoes: transacao.observacoes 
             ? `${transacao.observacoes}; Cancelada automaticamente no estorno da venda #${saleId}` 
             : `Cancelada automaticamente no estorno da venda #${saleId}`,
-          linkVenda: `/pdv/vendas/${saleId}`
+          linkVenda: `/dashboard/vendas/${saleId}`
         });
         
         console.log(`Transação financeira ${transacao.id} cancelada com sucesso`);

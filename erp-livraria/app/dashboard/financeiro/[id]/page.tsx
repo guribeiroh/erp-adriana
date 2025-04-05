@@ -25,6 +25,7 @@ import {
   TransacaoStatus,
   FormaPagamento
 } from "@/lib/services/financialService";
+import { formatBrazilianDate } from '@/lib/utils/date';
 
 // Componente de carregamento
 function DetalhesTransacaoLoading() {
@@ -83,9 +84,8 @@ function DetalhesTransacaoPage() {
   }, [id]);
   
   // Formatadores
-  const formatarData = (dataString?: string) => {
-    if (!dataString) return "-";
-    return new Date(dataString).toLocaleDateString('pt-BR');
+  const formatarData = (dataString: string) => {
+    return formatBrazilianDate(dataString);
   };
   
   const formatarValor = (valor: number) => {
@@ -240,15 +240,15 @@ function DetalhesTransacaoPage() {
                 </div>
                 
                 <div className="p-4">
-                  {transacao.tipo === 'receita' && transacao.venda && (
+                  {transacao.tipo === 'receita' && transacao.linkVenda && (
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-neutral-500">Venda relacionada</h3>
                       <div className="mt-2">
                         <Link
-                          href={`/dashboard/vendas/${transacao.venda}`}
+                          href={transacao.linkVenda.startsWith('/dashboard') ? transacao.linkVenda : `/dashboard/vendas/${transacao.vinculoId}`}
                           className="inline-block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2 text-center text-sm font-medium text-primary-700 hover:bg-neutral-50"
                         >
-                          Ver venda #{transacao.venda}
+                          Ver venda #{transacao.vinculoId || transacao.venda}
                         </Link>
                       </div>
                     </div>

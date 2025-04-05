@@ -32,6 +32,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { fetchTransacoes, Transacao, TransacaoTipo, TransacaoStatus, FormaPagamento, forcarRecargaDados } from '@/lib/services/financialService';
+import { formatBrazilianDate, formatBrazilianDateTime } from '@/lib/utils/date';
 
 // Dados simulados de categorias
 const categoriasReceitas = [
@@ -384,7 +385,7 @@ function FinanceiroPage() {
   
   // Formatador de data
   const formatarData = (dataString: string) => {
-    return new Date(dataString).toLocaleDateString('pt-BR');
+    return formatBrazilianDate(dataString);
   };
   
   // Formatador de valor monetário
@@ -435,9 +436,20 @@ function FinanceiroPage() {
     
     // Aplicar ordenação
     if (ordenacao === "data-asc") {
-      resultado.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+      // Usar formatação que considere o fuso horário de Brasília
+      resultado.sort((a, b) => {
+        // Converter as datas para objetos Date considerando o fuso de Brasília
+        const dataA = new Date(`${a.data}T12:00:00-03:00`); // Meio-dia no fuso de Brasília
+        const dataB = new Date(`${b.data}T12:00:00-03:00`);
+        return dataA.getTime() - dataB.getTime();
+      });
     } else if (ordenacao === "data-desc") {
-      resultado.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+      resultado.sort((a, b) => {
+        // Converter as datas para objetos Date considerando o fuso de Brasília
+        const dataA = new Date(`${a.data}T12:00:00-03:00`); // Meio-dia no fuso de Brasília
+        const dataB = new Date(`${b.data}T12:00:00-03:00`);
+        return dataB.getTime() - dataA.getTime();
+      });
     } else if (ordenacao === "valor-asc") {
       resultado.sort((a, b) => a.valor - b.valor);
     } else if (ordenacao === "valor-desc") {
@@ -685,7 +697,7 @@ function FinanceiroPage() {
                         <td className="whitespace-nowrap px-4 py-3.5 text-sm text-neutral-500">
                           {transacao.linkVenda && (
                             <Link
-                              href={transacao.linkVenda}
+                              href={transacao.linkVenda.startsWith('/dashboard') ? transacao.linkVenda : `/dashboard/vendas/${transacao.vinculoId}`}
                               className="rounded p-1 text-primary-600 hover:bg-neutral-100 hover:underline flex items-center"
                               title="Ver venda"
                             >
