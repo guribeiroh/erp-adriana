@@ -52,6 +52,8 @@ export default function RelatorioVendasPage() {
     setError(null);
     try {
       const data = await getSalesReport(filters);
+      console.log('Filtros aplicados:', filters);
+      console.log('Dados recebidos após aplicação de filtros:', data);
       setReportData(data);
     } catch (err) {
       console.error('Erro ao carregar relatório de vendas:', err);
@@ -69,6 +71,13 @@ export default function RelatorioVendasPage() {
     setShowFilters(false);
     loadReportData();
   };
+
+  // Atualiza o relatório automaticamente quando as opções não-personalizadas são alteradas
+  useEffect(() => {
+    if (filters.timeRange !== 'custom') {
+      loadReportData();
+    }
+  }, [filters.timeRange]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -185,6 +194,7 @@ export default function RelatorioVendasPage() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     value={filters.startDate || ''}
                     onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                    required={filters.timeRange === 'custom'}
                   />
                 </div>
                 <div>
@@ -194,6 +204,7 @@ export default function RelatorioVendasPage() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     value={filters.endDate || ''}
                     onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                    required={filters.timeRange === 'custom'}
                   />
                 </div>
               </>
@@ -258,6 +269,11 @@ export default function RelatorioVendasPage() {
               <span>Período: {reportData.period}</span>
               <span className="text-gray-400">•</span>
               <span>{getTimeRangeLabel(filters.timeRange)}</span>
+              {filters.timeRange === 'custom' && filters.startDate && filters.endDate && (
+                <span className="text-gray-500">
+                  ({new Date(filters.startDate).toLocaleDateString('pt-BR')} a {new Date(filters.endDate).toLocaleDateString('pt-BR')})
+                </span>
+              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -292,7 +308,12 @@ export default function RelatorioVendasPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gráfico de vendas por data */}
             <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Vendas por Data</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Vendas por Data
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  {getTimeRangeLabel(filters.timeRange)}
+                </span>
+              </h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={reportData.salesByDate}>

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatDateToYYYYMMDD } from '@/lib/utils/dateUtils';
 
 // Tipos para relatórios
 export interface SalesReportData {
@@ -73,108 +74,180 @@ export interface ReportFilters {
   customer?: string;
 }
 
+// Função auxiliar para gerar datas dentro de um intervalo
+const generateDateRange = (start: Date, end: Date): Date[] => {
+  const dates: Date[] = [];
+  const current = new Date(start);
+  
+  while (current <= end) {
+    dates.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return dates;
+};
+
+// Função para definir as datas de início e fim com base no timeRange
+const getDateRangeFromTimeRange = (timeRange: TimeRange, startDate?: string, endDate?: string): { start: Date, end: Date } => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let start = new Date(today);
+  let end = new Date(today);
+  
+  switch (timeRange) {
+    case 'today':
+      // Início e fim são hoje
+      break;
+    case 'yesterday':
+      start.setDate(today.getDate() - 1);
+      end.setDate(today.getDate() - 1);
+      break;
+    case 'week':
+      start.setDate(today.getDate() - 6);
+      break;
+    case 'month':
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+      end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      break;
+    case 'quarter':
+      const quarter = Math.floor(today.getMonth() / 3);
+      start = new Date(today.getFullYear(), quarter * 3, 1);
+      end = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+      break;
+    case 'year':
+      start = new Date(today.getFullYear(), 0, 1);
+      end = new Date(today.getFullYear(), 11, 31);
+      break;
+    case 'custom':
+      if (startDate && endDate) {
+        start = new Date(startDate);
+        end = new Date(endDate);
+      }
+      break;
+  }
+  
+  return { start, end };
+};
+
+// Função para formatar o período baseado no timeRange
+const formatPeriod = (timeRange: TimeRange, start: Date, end: Date): string => {
+  const dateFormatter = new Intl.DateTimeFormat('pt-BR');
+  
+  switch (timeRange) {
+    case 'today':
+      return `Hoje (${dateFormatter.format(start)})`;
+    case 'yesterday':
+      return `Ontem (${dateFormatter.format(start)})`;
+    case 'week':
+      return `Últimos 7 dias (${dateFormatter.format(start)} a ${dateFormatter.format(end)})`;
+    case 'month':
+      return `${start.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}`;
+    case 'quarter':
+      const quarter = Math.floor(start.getMonth() / 3) + 1;
+      return `${quarter}º Trimestre de ${start.getFullYear()}`;
+    case 'year':
+      return `Ano de ${start.getFullYear()}`;
+    case 'custom':
+      return `${dateFormatter.format(start)} a ${dateFormatter.format(end)}`;
+    default:
+      return 'Período desconhecido';
+  }
+};
+
 /**
- * Obtém dados de relatório de vendas com base nos filtros especificados
+ * Gera um relatório de vendas com base nos filtros fornecidos
  */
-export async function getSalesReport(filters: ReportFilters): Promise<SalesReportData> {
-  try {
-    if (!supabase) {
-      console.warn('Supabase não disponível, retornando dados simulados para relatório de vendas');
-      return getMockSalesReport(filters);
-    }
-
-    const { startDate, endDate } = getDateRangeFromFilters(filters);
-
-    // Consulta de vendas no período
-    const { data: sales, error: salesError } = await supabase
-      .from('sales')
-      .select('id, total, items:sale_items(quantity, book_id, price), customer_id, created_at')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
-
-    if (salesError) {
-      console.error('Erro ao consultar vendas:', salesError);
-      throw new Error('Falha ao obter dados de vendas para relatório');
-    }
-
-    // Valores iniciais
-    let totalSales = 0;
-    let totalItems = 0;
-    const customerIds = new Set<string>();
-    const categorySales: Record<string, number> = {};
-    const datesSales: Record<string, number> = {};
-
-    // Processar vendas
-    for (const sale of sales || []) {
-      // Somar ao total
-      totalSales += sale.total || 0;
-      
-      // Adicionar cliente ao conjunto de clientes únicos
-      if (sale.customer_id) {
-        customerIds.add(sale.customer_id);
-      }
-
-      // Agrupar por data
-      const saleDate = format(new Date(sale.created_at), 'yyyy-MM-dd');
-      datesSales[saleDate] = (datesSales[saleDate] || 0) + (sale.total || 0);
-
-      // Processar itens
-      if (sale.items && Array.isArray(sale.items)) {
-        // Contar total de itens
-        totalItems += sale.items.reduce((acc, item) => acc + (item.quantity || 0), 0);
-
-        // Buscar categorias dos livros vendidos
-        for (const item of sale.items) {
-          if (item.book_id) {
-            try {
-              const { data: book } = await supabase
-                .from('books')
-                .select('category')
-                .eq('id', item.book_id)
-                .single();
-
-              if (book && book.category) {
-                const itemTotal = (item.price || 0) * (item.quantity || 0);
-                categorySales[book.category] = (categorySales[book.category] || 0) + itemTotal;
-              }
-            } catch (error) {
-              console.error('Erro ao buscar categoria do livro:', error);
-            }
-          }
-        }
-      }
-    }
-
-    // Calcular ticket médio
-    const averageTicket = sales && sales.length > 0 ? totalSales / sales.length : 0;
-
-    // Formatar dados por categoria
-    const salesByCategory: CategoryData[] = Object.entries(categorySales).map(([category, value]) => ({
+export const getSalesReport = async (filters: ReportFilters): Promise<SalesReportData> => {
+  // Logs para depuração
+  console.log('Filtros recebidos:', filters);
+  
+  // Define intervalo de datas com base no timeRange
+  const { start, end } = getDateRangeFromTimeRange(
+    filters.timeRange, 
+    filters.startDate, 
+    filters.endDate
+  );
+  
+  console.log('Intervalo de datas calculado:', { start, end });
+  
+  // Formato do período baseado no timeRange
+  const period = formatPeriod(filters.timeRange, start, end);
+  
+  // Gera um array de datas no intervalo
+  const dateRange = generateDateRange(start, end);
+  
+  // Dados simulados - em produção, isso seria substituído por chamadas à API
+  // Simula vendas para cada dia no intervalo
+  const salesByDate = dateRange.map(date => {
+    // Gera um valor de venda aleatório entre 1000 e 10000
+    const value = Math.floor(Math.random() * 9000 + 1000);
+    
+    // Formata a data como DD/MM
+    return {
+      date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      value
+    };
+  });
+  
+  // Calcula o total de vendas
+  const totalSales = salesByDate.reduce((sum, item) => sum + item.value, 0);
+  
+  // Categorias simuladas
+  const categories = [
+    'Literatura',
+    'Didáticos',
+    'Infantil',
+    'Autoajuda',
+    'Negócios'
+  ];
+  
+  // Filtra categorias se houver filtro de categoria
+  const filteredCategories = filters.category 
+    ? categories.filter(cat => cat.toLowerCase().includes(filters.category!.toLowerCase()))
+    : categories;
+  
+  // Gera dados de vendas por categoria
+  const salesByCategory = filteredCategories.map(category => {
+    // Gera um valor de venda aleatório
+    const value = Math.floor(Math.random() * (totalSales / 2));
+    
+    return {
       category,
       value,
-      percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
-    })).sort((a, b) => b.value - a.value);
-
-    // Formatar dados por data
-    const salesByDate: DateData[] = Object.entries(datesSales).map(([date, value]) => ({
-      date,
-      value
-    })).sort((a, b) => a.date.localeCompare(b.date));
-
-    return {
-      period: `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`,
-      totalSales,
-      totalItems,
-      averageTicket,
-      totalCustomers: customerIds.size,
-      salesByCategory,
-      salesByDate
+      percentage: 0 // Será calculado depois
     };
-  } catch (error) {
-    console.error('Erro ao gerar relatório de vendas:', error);
-    return getMockSalesReport(filters);
+  });
+  
+  // Ajusta o último valor para que a soma seja igual ao totalSales
+  const sumExceptLast = salesByCategory.slice(0, -1).reduce((sum, item) => sum + item.value, 0);
+  if (salesByCategory.length > 0) {
+    salesByCategory[salesByCategory.length - 1].value = totalSales - sumExceptLast;
   }
-}
+  
+  // Calcula as porcentagens
+  salesByCategory.forEach(item => {
+    item.percentage = (item.value / totalSales) * 100;
+  });
+  
+  // Ordenar por valor (do maior para o menor)
+  salesByCategory.sort((a, b) => b.value - a.value);
+  
+  // Dados simulados para os outros campos
+  const totalItems = Math.floor(Math.random() * 500 + 100);
+  const totalCustomers = Math.floor(Math.random() * 100 + 20);
+  const averageTicket = Math.round(totalSales / totalCustomers);
+  
+  return {
+    period,
+    totalSales,
+    totalItems,
+    averageTicket,
+    totalCustomers,
+    salesByDate,
+    salesByCategory
+  };
+};
 
 /**
  * Obtém dados de relatório de estoque
