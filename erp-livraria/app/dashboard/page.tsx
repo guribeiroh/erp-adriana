@@ -115,7 +115,7 @@ export default function DashboardPage() {
             href="/dashboard/clientes"
           />
           <SummaryCard 
-            title="Livros em Estoque" 
+            title="Itens em Estoque" 
             value={String(dashboardData?.inventory.totalBooks || 0)} 
             icon={BookOpen} 
             trend={formatTrend(dashboardData?.inventory.trend || 0)} 

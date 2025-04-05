@@ -270,16 +270,20 @@ async function getInventorySummary(): Promise<DashboardSummary['inventory']> {
       throw new Error('Falha ao obter dados de produtos');
     }
 
-    // Calcular quantidade total em estoque e produtos com estoque baixo
+    // Calcular estatísticas do estoque
     const totalBooksInStock = books?.reduce((acc, book) => acc + (book.quantity || 0), 0) || 0;
+    const totalUniqueBooks = books?.length || 0;
     const lowStockCount = books?.filter(book => (book.quantity || 0) <= (book.minimum_stock || 5)).length || 0;
+
+    // Total de produtos = livros únicos + outros produtos
+    const totalProducts = totalUniqueBooks + (productsCount || 0);
 
     // Tendência é uma estimativa para exemplo
     const trend = -2; // Valor fixo para exemplo, indicando redução no estoque
 
     return {
       totalBooks: totalBooksInStock,
-      totalProducts: productsCount || 0,
+      totalProducts: totalProducts,
       lowStock: lowStockCount,
       trend
     };
