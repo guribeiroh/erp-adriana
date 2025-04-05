@@ -164,9 +164,11 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
     console.log('Filtros recebidos:', filters);
     
     if (!supabase) {
-      console.warn('Supabase não disponível, retornando dados simulados para relatório de vendas');
+      console.error('Conexão com Supabase não disponível');
       return getMockSalesReportV2(filters);
     }
+    
+    console.log('Conexão com Supabase disponível, tentando obter dados reais');
     
     const { start, end } = getDateRangeFromTimeRange(
       filters.timeRange, 
@@ -174,12 +176,16 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
       filters.endDate
     );
     
-    console.log('Intervalo de datas calculado:', { start, end });
+    console.log('Intervalo de datas calculado:', { 
+      start: start.toISOString(), 
+      end: end.toISOString() 
+    });
     
     // Formato do período baseado no timeRange
     const period = formatPeriod(filters.timeRange, start, end);
     
     // Consulta de vendas no período
+    console.log('Consultando vendas no período...');
     const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('id, total, items:sale_items(quantity, book_id, price), customer_id, created_at')
@@ -191,6 +197,13 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
       throw new Error('Falha ao obter dados de vendas para relatório');
     }
 
+    console.log('Vendas encontradas:', sales ? sales.length : 0);
+    
+    if (!sales || sales.length === 0) {
+      console.log('Nenhuma venda encontrada no período, retornando dados simulados');
+      return getMockSalesReportV2(filters);
+    }
+
     // Valores iniciais
     let totalSales = 0;
     let totalItems = 0;
@@ -199,7 +212,8 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
     const datesSales: Record<string, number> = {};
 
     // Processar vendas
-    for (const sale of sales || []) {
+    console.log('Processando dados de vendas...');
+    for (const sale of sales) {
       // Somar ao total
       totalSales += sale.total || 0;
       
@@ -222,11 +236,16 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
         for (const item of sale.items) {
           if (item.book_id) {
             try {
-              const { data: book } = await supabase
+              const { data: book, error: bookError } = await supabase
                 .from('books')
                 .select('category')
                 .eq('id', item.book_id)
                 .single();
+
+              if (bookError) {
+                console.error(`Erro ao buscar livro ${item.book_id}:`, bookError);
+                continue;
+              }
 
               if (book && book.category) {
                 const itemTotal = (item.price || 0) * (item.quantity || 0);
@@ -243,6 +262,14 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
         }
       }
     }
+
+    console.log('Dados processados:', {
+      totalSales,
+      totalItems,
+      customers: customerIds.size,
+      categories: Object.keys(categorySales).length,
+      dates: Object.keys(datesSales).length
+    });
 
     // Calcular ticket médio
     const averageTicket = customerIds.size > 0 ? totalSales / customerIds.size : 0;
@@ -278,7 +305,7 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
       });
     }
 
-    return {
+    const result = {
       period,
       totalSales,
       totalItems,
@@ -287,8 +314,12 @@ export const getSalesReport = async (filters: ReportFilters): Promise<SalesRepor
       salesByDate,
       salesByCategory
     };
+    
+    console.log('Relatório gerado com sucesso usando dados reais:', result);
+    return result;
   } catch (error) {
     console.error('Erro ao gerar relatório de vendas:', error);
+    console.log('Usando dados simulados devido a erro');
     return getMockSalesReportV2(filters);
   }
 };
@@ -815,4 +846,72 @@ function getMockCustomerReport(): CustomerReportData {
       { category: 'Outros', value: 10, percentage: 4.08 }
     ]
   };
-} 
+}
+
+/**
+ * Função auxiliar para listar todas as tabelas disponíveis no Supabase
+ * e verificar a estrutura da tabela de vendas
+ */
+export const debugDatabaseTables = async () => {
+  if (!supabase) {
+    console.error("Supabase não está disponível");
+    return null;
+  }
+
+  try {
+    // Listar todas as tabelas disponíveis
+    const { data: tables, error: tablesError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public');
+    
+    if (tablesError) {
+      console.error("Erro ao listar tabelas:", tablesError);
+      return null;
+    }
+
+    console.log("Tabelas disponíveis:", tables);
+
+    // Verificar se há uma tabela de vendas
+    const salesTable = tables.find(t => t.table_name === 'sales');
+    if (!salesTable) {
+      console.error("Tabela de vendas não encontrada");
+      return null;
+    }
+
+    // Verificar estrutura da tabela de vendas
+    const { data: salesColumns, error: columnsError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name, data_type')
+      .eq('table_name', 'sales')
+      .eq('table_schema', 'public');
+
+    if (columnsError) {
+      console.error("Erro ao verificar colunas da tabela de vendas:", columnsError);
+      return null;
+    }
+
+    console.log("Estrutura da tabela de vendas:", salesColumns);
+
+    // Verificar se existem registros na tabela de vendas
+    const { data: salesCount, error: countError } = await supabase
+      .from('sales')
+      .select('id', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error("Erro ao contar registros de vendas:", countError);
+      return null;
+    }
+
+    console.log("Total de registros na tabela de vendas:", salesCount ? salesCount.length : 0);
+
+    return {
+      tables,
+      salesColumns,
+      salesCount: salesCount ? salesCount.length : 0
+    };
+  } catch (error) {
+    console.error("Erro ao depurar tabelas:", error);
+    return null;
+  }
+}; 

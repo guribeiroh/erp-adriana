@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getSalesReport, ReportFilters, SalesReportData, TimeRange } from '@/lib/services/reportService';
+import { getSalesReport, ReportFilters, SalesReportData, TimeRange, debugDatabaseTables } from '@/lib/services/reportService';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -45,6 +45,8 @@ export default function RelatorioVendasPage() {
 
   useEffect(() => {
     loadReportData();
+    // Chamar a função de debug para verificar se o Supabase está funcionando
+    checkDatabaseTables();
   }, []);
 
   const loadReportData = async () => {
@@ -60,6 +62,16 @@ export default function RelatorioVendasPage() {
       setError('Não foi possível carregar o relatório. Tente novamente mais tarde.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkDatabaseTables = async () => {
+    try {
+      console.log("Verificando tabelas do banco de dados...");
+      const result = await debugDatabaseTables();
+      console.log("Resultado do debug das tabelas:", result);
+    } catch (error) {
+      console.error("Erro ao verificar tabelas:", error);
     }
   };
 

@@ -14,6 +14,10 @@ let forceUseRealData = false;
 // Guardar a sessão atual para reutilizar
 let currentSession = null;
 
+// Adicionar logs para debug
+console.log('Supabase URL definido:', !!supabaseUrl);
+console.log('Supabase ANON Key definido:', !!supabaseAnonKey);
+
 // Verificar se as variáveis estão indefinidas ou são placeholders
 if (!supabaseUrl || supabaseUrl === 'sua_supabase_url' || 
     !supabaseAnonKey || supabaseAnonKey === 'sua_supabase_anon_key') {
