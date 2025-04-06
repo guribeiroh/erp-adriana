@@ -285,7 +285,7 @@ export default function RelatorioVendasPage() {
                 iconColor="bg-green-100 text-green-600"
               />
               <SummaryCard 
-                title="Itens Vendidos" 
+                title="Livros Vendidos" 
                 value={reportData.totalItems.toString()} 
                 icon={Package} 
                 iconColor="bg-blue-100 text-blue-600"
