@@ -14,9 +14,23 @@ let forceUseRealData = false;
 // Guardar a sessão atual para reutilizar
 let currentSession = null;
 
+// Função para melhorar o debug
+const sanitizedLog = (type: string, value: string | null | undefined): string => {
+  if (!value) return `${type}: <não definido>`;
+  if (value.length > 40) {
+    return `${type}: ${value.substring(0, 10)}...${value.substring(value.length - 5)}`;
+  }
+  return `${type}: ${value}`;
+};
+
 // Adicionar logs para debug
-console.log('Supabase URL definido:', !!supabaseUrl);
-console.log('Supabase ANON Key definido:', !!supabaseAnonKey);
+console.log('------------------- DIAGNÓSTICO SUPABASE -------------------');
+console.log('Ambiente:', isDevelopment ? 'Desenvolvimento' : 'Produção');
+console.log(sanitizedLog('Supabase URL', supabaseUrl));
+console.log('Supabase URL formato válido:', supabaseUrl?.startsWith('https://') || false);
+console.log(sanitizedLog('Supabase ANON Key', supabaseAnonKey));
+console.log('Supabase ANON Key formato válido:', supabaseAnonKey?.startsWith('eyJ') || false);
+console.log('-------------------------------------------------------------');
 
 // Verificar se as variáveis estão indefinidas ou são placeholders
 if (!supabaseUrl || supabaseUrl === 'sua_supabase_url' || 
@@ -24,28 +38,88 @@ if (!supabaseUrl || supabaseUrl === 'sua_supabase_url' ||
   if (isDevelopment) {
     console.warn('⚠️ Usando valores temporários para Supabase no ambiente de desenvolvimento.');
     console.warn('⚠️ Para conectar com seu projeto real, atualize as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no arquivo .env.local');
+    
+    // Se estivermos em desenvolvimento, podemos usar valores padrão para facilitar o teste
+    if (!supabaseUrl || supabaseUrl === 'sua_supabase_url') {
+      console.warn('⚠️ Usando URL padrão para desenvolvimento');
+      supabaseUrl = 'https://coloquesuaurl.supabase.co';
+    }
+    
+    if (!supabaseAnonKey || supabaseAnonKey === 'sua_supabase_anon_key') {
+      console.warn('⚠️ Usando ANON_KEY padrão para desenvolvimento');
+      supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Token parcial para testes
+    }
   } else {
     console.error('❌ Variáveis de ambiente do Supabase não configuradas corretamente!');
   }
 }
 
+// Corrigir problemas comuns com a URL do Supabase
+if (supabaseUrl && !supabaseUrl.startsWith('https://')) {
+  console.warn('⚠️ Corrigindo formato da URL do Supabase (adicionando https://)');
+  supabaseUrl = 'https://' + supabaseUrl;
+}
+
+// Verificar se a ANON_KEY possui quebras de linha ou foi truncada
+if (supabaseAnonKey && (supabaseAnonKey.includes('\n') || supabaseAnonKey.includes('\r'))) {
+  console.warn('⚠️ A chave ANON_KEY contém quebras de linha. Corrigindo...');
+  supabaseAnonKey = supabaseAnonKey.replace(/[\r\n]+/g, '');
+}
+
 // Criar cliente apenas se as variáveis estiverem definidas
-export const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+let supabase = null;
+try {
+  if (supabaseUrl && supabaseAnonKey) {
+    // Garantir que as strings não tenham espaços em branco extras
+    const cleanUrl = supabaseUrl.trim();
+    const cleanKey = supabaseAnonKey.trim();
+    
+    console.log('Inicializando cliente Supabase com:');
+    console.log(sanitizedLog('URL', cleanUrl));
+    console.log(sanitizedLog('ANON_KEY', cleanKey));
+    
+    supabase = createClient(cleanUrl, cleanKey, {
       auth: {
-        persistSession: true, // Permitir persistência da sessão para manter o login
-        autoRefreshToken: true, // Para manter o token atualizado
-        detectSessionInUrl: true, // Detectar a sessão na URL
-        storageKey: 'erp-livraria-auth', // Chave personalizada para armazenamento
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'erp-livraria-auth',
       },
-      // Importante: Definir o cabeçalho para evitar problemas de CORS e melhorar a depuração
       global: {
         headers: {
           'x-client-info': 'erp-livraria-client',
         },
       },
-    })
-  : null;
+    });
+    
+    // Verificar se o cliente foi inicializado corretamente
+    if (supabase) {
+      console.log('✅ Cliente Supabase inicializado com sucesso');
+      
+      // Teste de conexão
+      supabase.from('sales').select('count(*)', { count: 'exact', head: true })
+        .then(({ error }) => {
+          if (error) {
+            console.warn('⚠️ Teste de conexão falhou:', error.message);
+          } else {
+            console.log('✅ Teste de conexão bem-sucedido');
+          }
+        })
+        .catch(err => {
+          console.warn('⚠️ Erro no teste de conexão:', err.message);
+        });
+    } else {
+      console.error('❌ Cliente Supabase não foi inicializado corretamente');
+    }
+  } else {
+    console.error('❌ Cliente Supabase não inicializado: variáveis de ambiente ausentes');
+  }
+} catch (error) {
+  console.error('❌ Erro ao inicializar cliente Supabase:', error);
+  supabase = null;
+}
+
+export { supabase };
 
 // Função para verificar se devemos usar dados reais do Supabase
 export function shouldUseRealData() {
@@ -83,7 +157,9 @@ export function debugSupabaseState() {
                  supabaseUrl !== 'sua_supabase_url' &&
                  !!supabaseAnonKey && 
                  supabaseAnonKey !== 'sua_supabase_anon_key',
-    shouldUseRealData: shouldUseRealData()
+    shouldUseRealData: shouldUseRealData(),
+    url: supabaseUrl ? `${supabaseUrl.substring(0, 10)}...` : null,
+    keyValid: supabaseAnonKey ? supabaseAnonKey.startsWith('eyJ') : false
   };
   
   console.log('🔍 Estado atual do Supabase:', state);

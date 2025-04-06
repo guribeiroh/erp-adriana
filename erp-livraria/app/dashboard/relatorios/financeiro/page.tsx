@@ -53,7 +53,14 @@ export default function RelatorioFinanceiroPage() {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('Solicitando relatório financeiro com filtros:', filters);
       const data = await getFinancialReport(filters);
+      console.log('Dados recebidos do relatório financeiro:', data);
+      
+      if (!data.revenueByCategory || data.revenueByCategory.length === 0) {
+        console.warn('Nenhum dado de categoria recebido, gerando dados padrão');
+      }
+      
       setReportData(data);
     } catch (err) {
       console.error('Erro ao carregar relatório financeiro:', err);
@@ -320,25 +327,31 @@ export default function RelatorioFinanceiroPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Receita por Categoria</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportData.revenueByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="category"
-                      label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {reportData.revenueByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Legend />
-                  </PieChart>
+                  {reportData?.revenueByCategory && reportData.revenueByCategory.length > 0 ? (
+                    <PieChart>
+                      <Pie
+                        data={reportData.revenueByCategory}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="category"
+                        label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {reportData.revenueByCategory.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Legend />
+                    </PieChart>
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center">
+                      <p className="text-gray-500">Nenhum dado de categoria disponível</p>
+                    </div>
+                  )}
                 </ResponsiveContainer>
               </div>
             </div>
@@ -350,55 +363,61 @@ export default function RelatorioFinanceiroPage() {
               <h3 className="font-medium text-gray-900">Detalhamento por Categoria</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Categoria
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Valor Total
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Participação (%)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {reportData.revenueByCategory.map((category, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {category.category}
+              {reportData?.revenueByCategory && reportData.revenueByCategory.length > 0 ? (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Categoria
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Valor Total
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Participação (%)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {reportData.revenueByCategory.map((category, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {category.category}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {formatCurrency(category.value)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {category.percentage.toFixed(2)}%
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div
+                              className="bg-blue-600 h-1.5 rounded-full"
+                              style={{ width: `${Math.min(category.percentage, 100)}%` }}
+                            ></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <th scope="row" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {formatCurrency(reportData.revenue)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {formatCurrency(category.value)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {category.percentage.toFixed(2)}%
-                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                          <div
-                            className="bg-blue-600 h-1.5 rounded-full"
-                            style={{ width: `${category.percentage}%` }}
-                          ></div>
-                        </div>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        100%
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <th scope="row" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatCurrency(reportData.revenue)}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      100%
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                  </tfoot>
+                </table>
+              ) : (
+                <div className="p-6 text-center">
+                  <p className="text-gray-500">Nenhum dado de categoria disponível</p>
+                </div>
+              )}
             </div>
           </div>
           
