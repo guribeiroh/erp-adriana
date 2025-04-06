@@ -811,7 +811,7 @@ export default function DetalhesVendaPage() {
                 <tfoot className="bg-neutral-50">
                   <tr>
                     <td colSpan={4} className="px-4 py-3 text-right text-sm font-medium text-neutral-900">
-                      Total ({itens.length} {itens.length === 1 ? 'item' : 'itens'})
+                      Total ({itens.length} {itens.length === 1 ? 'livro' : 'livros'})
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-medium text-neutral-900">
                       {formatarValor(venda.total)}

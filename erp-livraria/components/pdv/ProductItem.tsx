@@ -33,7 +33,7 @@ export default function ProductItem({ book, onAddToCart }: ProductItemProps) {
       </div>
       
       <p className={`mt-1 text-xs ${book.quantity <= book.minimum_stock ? 'text-amber-600 font-medium' : 'text-gray-500'}`}>
-        Estoque: {book.quantity} {book.quantity <= book.minimum_stock ? '(baixo)' : 'unidades'}
+        Estoque: {book.quantity} {book.quantity <= book.minimum_stock ? '(baixo)' : 'livros'}
       </p>
     </div>
   );

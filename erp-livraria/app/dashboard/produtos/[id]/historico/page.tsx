@@ -271,7 +271,7 @@ export default function HistoricoVendasProdutoPage() {
                   <span className="font-medium text-neutral-700">ISBN:</span> {produto.isbn}
                 </div>
                 <div className="rounded-lg bg-neutral-100 px-3 py-1">
-                  <span className="font-medium text-neutral-700">Estoque:</span> {produto.quantity} unidades
+                  <span className="font-medium text-neutral-700">Estoque:</span> {produto.quantity} livros
                 </div>
                 <div className="rounded-lg bg-neutral-100 px-3 py-1">
                   <span className="font-medium text-neutral-700">Preço:</span> {formatarMoeda(produto.selling_price)}

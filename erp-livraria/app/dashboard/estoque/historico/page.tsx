@@ -386,7 +386,7 @@ function HistoricoMovimentacoesContent() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
-                          {movimentacao.quantity} {movimentacao.quantity === 1 ? 'unidade' : 'unidades'}
+                          {movimentacao.quantity} {movimentacao.quantity === 1 ? 'livro' : 'livros'}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
                           {getNomeMotivo(movimentacao.type, movimentacao.reason)}

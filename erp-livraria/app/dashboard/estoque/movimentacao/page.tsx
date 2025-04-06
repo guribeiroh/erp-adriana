@@ -432,7 +432,7 @@ export default function MovimentacaoEstoquePage() {
                             <span className="font-medium text-neutral-700">Preço:</span> R$ {produtoSelecionado.selling_price.toFixed(2).replace('.', ',')}
                           </div>
                           <div>
-                            <span className="font-medium text-neutral-700">Estoque:</span> {produtoSelecionado.quantity} unidades
+                            <span className="font-medium text-neutral-700">Estoque:</span> {produtoSelecionado.quantity} livros
                           </div>
                         </div>
                       </div>

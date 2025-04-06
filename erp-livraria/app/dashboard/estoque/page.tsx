@@ -213,7 +213,7 @@ export default function EstoquePage() {
             <h3 className="mb-1 text-sm font-medium text-neutral-500">Total de Produtos</h3>
             <p className="text-2xl font-semibold text-neutral-900">{totalProdutos}</p>
             <p className="mt-2 text-sm text-neutral-600">
-              <span className="font-medium">{totalUnidades}</span> unidades em estoque
+              <span className="font-medium">{totalUnidades}</span> livros em estoque
             </p>
           </div>
           
