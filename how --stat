@@ -1,0 +1,7 @@
+[33mcommit 6e950948bf8f5fbdfb41c56577222220f8bbef61[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: guribeiroh <agenciatdx@gmail.com>
+Date:   Thu Apr 3 20:53:22 2025 -0300
+
+    Melhorias: torna o link da venda mais visível na tabela de movimentações de estoque
+
+erp-livraria/app/dashboard/estoque/historico/page.tsx
