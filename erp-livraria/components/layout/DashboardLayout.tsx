@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ReactNode, useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { 
   BarChart3,
@@ -46,6 +46,7 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   
   // Fechar menu quando clicar fora dele
   useEffect(() => {
@@ -209,20 +210,39 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
 }
 
 function DesktopNavigation() {
+  const pathname = usePathname();
+  
+  // Função para verificar se um link está ativo
+  const isActive = (href: string) => {
+    // Verifica se o pathname começa com o href
+    // Por exemplo, /dashboard/relatorios/vendas começa com /dashboard/relatorios
+    return pathname === href || pathname?.startsWith(`${href}/`);
+  };
+  
   return (
     <nav>
       <ul className="space-y-1">
-        {menuLinks.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 hover:text-primary-600"
-            >
-              <item.icon className="h-5 w-5 text-neutral-500" />
-              <span>{item.label}</span>
-            </Link>
-          </li>
-        ))}
+        {menuLinks.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
+                  active 
+                    ? 'bg-primary-50 text-primary-600 font-semibold' 
+                    : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                }`}
+              >
+                <item.icon className={`h-5 w-5 ${active ? 'text-primary-600' : 'text-neutral-500'}`} />
+                <span>{item.label}</span>
+                {active && (
+                  <div className="ml-auto w-1 h-5 bg-primary-600 rounded-full"></div>
+                )}
+              </Link>
+            </li>
+          );
+        })}
         <li className="mt-6 border-t border-neutral-200 pt-6">
           <Link
             href="/logout"
@@ -238,20 +258,38 @@ function DesktopNavigation() {
 }
 
 function MobileNavigation() {
+  const pathname = usePathname();
+  
+  // Função para verificar se um link está ativo
+  const isActive = (href: string) => {
+    // Verifica se o pathname começa com o href
+    return pathname === href || pathname?.startsWith(`${href}/`);
+  };
+  
   return (
     <nav>
       <ul className="space-y-1">
-        {menuLinks.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 hover:text-primary-600"
-            >
-              <item.icon className="h-5 w-5 text-neutral-500" />
-              <span>{item.label}</span>
-            </Link>
-          </li>
-        ))}
+        {menuLinks.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
+                  active 
+                    ? 'bg-primary-50 text-primary-600 font-semibold' 
+                    : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                }`}
+              >
+                <item.icon className={`h-5 w-5 ${active ? 'text-primary-600' : 'text-neutral-500'}`} />
+                <span>{item.label}</span>
+                {active && (
+                  <div className="ml-auto w-1 h-5 bg-primary-600 rounded-full"></div>
+                )}
+              </Link>
+            </li>
+          );
+        })}
         <li className="mt-6 border-t border-neutral-200 pt-6">
           <Link
             href="/logout"
