@@ -214,8 +214,12 @@ function DesktopNavigation() {
   
   // Função para verificar se um link está ativo
   const isActive = (href: string) => {
-    // Verifica se o pathname começa com o href
-    // Por exemplo, /dashboard/relatorios/vendas começa com /dashboard/relatorios
+    // Caso especial para o Dashboard: só ativo quando estiver exatamente na rota /dashboard
+    if (href === '/dashboard') {
+      return pathname === '/dashboard';
+    }
+    
+    // Para outros links, verificar se o pathname começa com o href
     return pathname === href || pathname?.startsWith(`${href}/`);
   };
   
@@ -262,7 +266,12 @@ function MobileNavigation() {
   
   // Função para verificar se um link está ativo
   const isActive = (href: string) => {
-    // Verifica se o pathname começa com o href
+    // Caso especial para o Dashboard: só ativo quando estiver exatamente na rota /dashboard
+    if (href === '/dashboard') {
+      return pathname === '/dashboard';
+    }
+    
+    // Para outros links, verificar se o pathname começa com o href
     return pathname === href || pathname?.startsWith(`${href}/`);
   };
   
