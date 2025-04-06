@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://tddcvbsrfwtogmqclxon.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkZGN2YnNyZnd0b2dtcWNseG9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0Nzc5NDAsImV4cCI6MjA1OTA1Mzk0MH0.1lRApt26-SjSVyYZUDiJNz6Y7qAubreZ5S-f3oVcLyI",
+    "NEXT_PUBLIC_APP_NAME": "ERP Livraria"
+  }
+} 
