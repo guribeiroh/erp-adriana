@@ -97,15 +97,10 @@ export default function LoginPage() {
   return (
     <div className="flex h-screen bg-neutral-50">
       {/* Lado esquerdo - Arte/Imagem de fundo */}
-      <div className="hidden w-1/2 bg-primary-600 lg:block">
+      <div className="hidden w-1/2 bg-cover bg-center lg:block" style={{ backgroundImage: 'url("/adriana-background.png")' }}>
         <div className="flex h-full items-center justify-center p-12">
           <div className="max-w-lg text-center">
-            <Book className="mx-auto mb-6 h-16 w-16 text-white" />
-            <h1 className="mb-6 text-4xl font-bold text-white">ERP Livraria</h1>
-            <p className="text-lg text-primary-200">
-              Gerencie sua livraria com eficiência e precisão. 
-              Acompanhe vendas, estoque, clientes e finanças em um só lugar.
-            </p>
+            {/* Conteúdo removido a pedido do usuário */}
           </div>
         </div>
       </div>
