@@ -593,13 +593,6 @@ function FinanceiroPage() {
                 <RefreshCw className={`h-4 w-4 ${atualizando ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Atualizar</span>
               </button>
-              <Link
-                href="/dashboard/financeiro/relatorios"
-                className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-              >
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Relatórios</span>
-              </Link>
             </div>
           </div>
           
