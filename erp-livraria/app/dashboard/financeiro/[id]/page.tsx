@@ -23,7 +23,8 @@ import {
   Transacao, 
   TransacaoTipo,
   TransacaoStatus,
-  FormaPagamento
+  FormaPagamento,
+  updateTransacao
 } from "@/lib/services/financialService";
 import { formatBrazilianDate } from '@/lib/utils/date';
 
@@ -59,6 +60,12 @@ function DetalhesTransacaoPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   
+  // Estados para o modal de confirmação de cancelamento
+  const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false);
+  const [confirmacaoDigitada, setConfirmacaoDigitada] = useState("");
+  const [cancelando, setCancelando] = useState(false);
+  const [erroCancelamento, setErroCancelamento] = useState<string | null>(null);
+  
   useEffect(() => {
     async function carregarTransacao() {
       try {
@@ -90,6 +97,60 @@ function DetalhesTransacaoPage() {
   
   const formatarValor = (valor: number) => {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+  
+  // Função para iniciar o processo de cancelamento
+  const iniciarCancelamento = () => {
+    setMostrarModalConfirmacao(true);
+    setConfirmacaoDigitada("");
+    setErroCancelamento(null);
+  };
+  
+  // Função para cancelar o processo
+  const cancelarProcesso = () => {
+    setMostrarModalConfirmacao(false);
+    setConfirmacaoDigitada("");
+    setErroCancelamento(null);
+  };
+  
+  // Função para confirmar e executar o cancelamento
+  const confirmarCancelamento = async () => {
+    if (!transacao) return;
+    
+    if (confirmacaoDigitada.toLowerCase() !== "confirmar") {
+      setErroCancelamento("Digite 'confirmar' para prosseguir");
+      return;
+    }
+    
+    setCancelando(true);
+    setErroCancelamento(null);
+    
+    try {
+      const observacao = transacao.observacoes 
+        ? `${transacao.observacoes}; Cancelada manualmente em ${new Date().toLocaleDateString('pt-BR')}`
+        : `Cancelada manualmente em ${new Date().toLocaleDateString('pt-BR')}`;
+        
+      // Atualizar status da transação
+      await updateTransacao(transacao.id, { 
+        status: 'cancelada',
+        observacoes: observacao
+      });
+      
+      // Atualizar a transação localmente
+      setTransacao({
+        ...transacao,
+        status: 'cancelada',
+        observacoes: observacao
+      });
+      
+      // Fechar o modal
+      setMostrarModalConfirmacao(false);
+    } catch (error) {
+      console.error("Erro ao cancelar transação:", error);
+      setErroCancelamento("Ocorreu um erro ao cancelar a transação. Tente novamente.");
+    } finally {
+      setCancelando(false);
+    }
   };
   
   return (
@@ -288,7 +349,10 @@ function DetalhesTransacaoPage() {
                       )}
                       
                       {transacao.status !== 'cancelada' && (
-                        <button className="inline-flex w-full items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+                        <button 
+                          onClick={iniciarCancelamento}
+                          className="inline-flex w-full items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                        >
                           <X className="mr-1 h-4 w-4" />
                           Cancelar transação
                         </button>
@@ -301,6 +365,66 @@ function DetalhesTransacaoPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Modal de confirmação de cancelamento */}
+        {mostrarModalConfirmacao && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-medium text-neutral-900">Confirmar cancelamento</h3>
+                <button 
+                  onClick={cancelarProcesso}
+                  className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="mb-4 text-neutral-700">
+                  Esta ação não pode ser desfeita. A transação será marcada como cancelada no sistema.
+                </p>
+                <p className="mb-4 text-neutral-700">
+                  Para confirmar, digite <strong>confirmar</strong> no campo abaixo.
+                </p>
+                <input
+                  type="text"
+                  value={confirmacaoDigitada}
+                  onChange={(e) => setConfirmacaoDigitada(e.target.value)}
+                  placeholder="Digite 'confirmar'"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                />
+                {erroCancelamento && (
+                  <p className="mt-2 text-sm text-red-600">{erroCancelamento}</p>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelarProcesso}
+                  className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                  disabled={cancelando}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarCancelamento}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:bg-red-300"
+                  disabled={cancelando || confirmacaoDigitada.toLowerCase() !== "confirmar"}
+                >
+                  {cancelando ? (
+                    <>
+                      <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                      Processando...
+                    </>
+                  ) : (
+                    "Cancelar transação"
+                  )}
+                </button>
               </div>
             </div>
           </div>

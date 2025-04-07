@@ -29,9 +29,12 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  X,
+  Check
 } from "lucide-react";
-import { fetchTransacoes, Transacao, TransacaoTipo, TransacaoStatus, FormaPagamento, forcarRecargaDados } from '@/lib/services/financialService';
+import { fetchTransacoes, Transacao, TransacaoTipo, TransacaoStatus, FormaPagamento, forcarRecargaDados, deleteTransacao } from '@/lib/services/financialService';
 import { formatBrazilianDate, formatBrazilianDateTime } from '@/lib/utils/date';
 
 // Dados simulados de categorias
@@ -264,6 +267,13 @@ function FinanceiroPage() {
   const [atualizando, setAtualizando] = useState(false);
   const [saldoAtual, setSaldoAtual] = useState(0);
   
+  // Estados para o modal de confirmação de exclusão
+  const [transacaoParaExcluir, setTransacaoParaExcluir] = useState<string | null>(null);
+  const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false);
+  const [confirmacaoDigitada, setConfirmacaoDigitada] = useState("");
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null);
+  
   // Função para carregar transações
   const carregarTransacoes = useCallback(async () => {
     try {
@@ -485,6 +495,53 @@ function FinanceiroPage() {
   // Handler para alterar ordenação
   const handleOrdenacaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setOrdenacao(e.target.value);
+  };
+  
+  // Função para iniciar o processo de exclusão
+  const iniciarExclusao = (id: string) => {
+    setTransacaoParaExcluir(id);
+    setMostrarModalConfirmacao(true);
+    setConfirmacaoDigitada("");
+    setErroExclusao(null);
+  };
+  
+  // Função para cancelar a exclusão
+  const cancelarExclusao = () => {
+    setTransacaoParaExcluir(null);
+    setMostrarModalConfirmacao(false);
+    setConfirmacaoDigitada("");
+    setErroExclusao(null);
+  };
+  
+  // Função para confirmar e executar a exclusão
+  const confirmarExclusao = async () => {
+    if (!transacaoParaExcluir) return;
+    
+    if (confirmacaoDigitada.toLowerCase() !== "confirmar") {
+      setErroExclusao("Digite 'confirmar' para prosseguir");
+      return;
+    }
+    
+    setExcluindo(true);
+    setErroExclusao(null);
+    
+    try {
+      await deleteTransacao(transacaoParaExcluir);
+      
+      // Atualizar a lista de transações após a exclusão
+      setTransacoes(transacoes.filter(t => t.id !== transacaoParaExcluir));
+      setTransacoesFiltradas(transacoesFiltradas.filter(t => t.id !== transacaoParaExcluir));
+      
+      // Fechar o modal
+      setMostrarModalConfirmacao(false);
+      setTransacaoParaExcluir(null);
+      setConfirmacaoDigitada("");
+    } catch (error) {
+      console.error("Erro ao excluir transação:", error);
+      setErroExclusao("Ocorreu um erro ao excluir a transação. Tente novamente.");
+    } finally {
+      setExcluindo(false);
+    }
   };
   
   return (
@@ -738,6 +795,13 @@ function FinanceiroPage() {
                             >
                               <Receipt className="h-4 w-4" />
                             </button>
+                            <button
+                              onClick={() => iniciarExclusao(transacao.id)}
+                              className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-red-600"
+                              title="Excluir transação"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -779,6 +843,66 @@ function FinanceiroPage() {
               </div>
             </div>
           </div>
+          
+          {/* Modal de confirmação de exclusão */}
+          {mostrarModalConfirmacao && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-neutral-900">Confirmar exclusão</h3>
+                  <button 
+                    onClick={cancelarExclusao}
+                    className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="mb-6">
+                  <p className="mb-4 text-neutral-700">
+                    Esta ação não pode ser desfeita. A transação será permanentemente removida do sistema.
+                  </p>
+                  <p className="mb-4 text-neutral-700">
+                    Para confirmar, digite <strong>confirmar</strong> no campo abaixo.
+                  </p>
+                  <input
+                    type="text"
+                    value={confirmacaoDigitada}
+                    onChange={(e) => setConfirmacaoDigitada(e.target.value)}
+                    placeholder="Digite 'confirmar'"
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  />
+                  {erroExclusao && (
+                    <p className="mt-2 text-sm text-red-600">{erroExclusao}</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={cancelarExclusao}
+                    className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                    disabled={excluindo}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmarExclusao}
+                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:bg-red-300"
+                    disabled={excluindo || confirmacaoDigitada.toLowerCase() !== "confirmar"}
+                  >
+                    {excluindo ? (
+                      <>
+                        <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        Excluindo...
+                      </>
+                    ) : (
+                      "Excluir transação"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </DashboardLayout>
