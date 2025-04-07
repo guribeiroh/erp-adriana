@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import DashboardLayout from "../../../../components/layout/DashboardLayout";
+import DashboardLayout from "@/components/DashboardLayout";
 import { createTransacao } from "@/lib/services/financialService";
 import { 
   ArrowLeft, 
