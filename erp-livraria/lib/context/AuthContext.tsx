@@ -61,13 +61,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user || null);
         setSession(session);
         
-        // Se o usuário fez login, forçar uso de dados reais
+        // Redirecionar apenas no evento SIGNED_IN quando é um login inicial
         if (event === 'SIGNED_IN' && session) {
-          forceRealData();
-          console.log('Evento de login detectado, forçando uso de dados reais');
-          
-          // Redirecionar apenas no evento SIGNED_IN
-          router.push('/dashboard');
+          // Verificar se é um login inicial ou apenas uma atualização da sessão
+          if (!user) { // Só redireciona se não havia usuário antes (login inicial)
+            forceRealData();
+            console.log('Evento de login inicial detectado, forçando uso de dados reais');
+            router.push('/dashboard');
+          } else {
+            console.log('Atualização de sessão detectada, mantendo na página atual');
+          }
         } 
         // Removemos o redirecionamento automático no SIGNED_OUT
         // O redirecionamento será feito pela página de logout
@@ -223,9 +226,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      // Apenas atualizar os dados do usuário em memória
       setUser(data.user);
       
       // Se o usuário estiver logado, forçar uso de dados reais
+      // mas sem redirecionar ou recarregar a página
       if (data.user) {
         forceRealData();
       }
