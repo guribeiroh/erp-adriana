@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, getAuthStatus, forceRealData, clearLocalData } from '../supabase/client';
 import { useRouter } from 'next/navigation';
@@ -36,18 +36,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
+  
+  // Referência para controlar se o login foi feito diretamente pelo usuário
+  const isInitialLogin = useRef(true);
+  const hasInitialized = useRef(false);
+  
   // Verificar o estado da autenticação ao carregar
   useEffect(() => {
     const loadUserData = async () => {
+      if (hasInitialized.current) return;
+      
       try {
         const { user, session } = await getAuthStatus();
         setUser(user);
         setSession(session);
+        
+        // Marcar que não é o login inicial, pois estamos apenas carregando o estado
+        if (user) {
+          isInitialLogin.current = false;
+        }
       } catch (error) {
         console.error('Erro ao carregar dados do usuário:', error);
       } finally {
         setIsLoading(false);
+        hasInitialized.current = true;
       }
     };
 
@@ -56,24 +68,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Configurar o listener para mudanças na autenticação
     if (supabase) {
-      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log(`Evento de autenticação: ${event}`);
-        setUser(session?.user || null);
-        setSession(session);
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        // Não logar eventos de refresh de token para reduzir ruído no console
+        if (event !== 'TOKEN_REFRESHED') {
+          console.log(`Evento de autenticação: ${event}`);
+        }
         
-        // Redirecionar apenas no evento SIGNED_IN quando é um login inicial
-        if (event === 'SIGNED_IN' && session) {
-          // Verificar se é um login inicial ou apenas uma atualização da sessão
-          if (!user) { // Só redireciona se não havia usuário antes (login inicial)
-            forceRealData();
-            console.log('Evento de login inicial detectado, forçando uso de dados reais');
-            router.push('/dashboard');
-          } else {
-            console.log('Atualização de sessão detectada, mantendo na página atual');
-          }
-        } 
-        // Removemos o redirecionamento automático no SIGNED_OUT
-        // O redirecionamento será feito pela página de logout
+        // Atualizar o estado do usuário e sessão sem redirecionar
+        if (newSession?.user) {
+          setUser(newSession.user);
+          setSession(newSession);
+          
+          // Forçar uso de dados reais, independente do tipo de evento
+          forceRealData();
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setSession(null);
+          // Não redirecionamos aqui - o redirecionamento no logout é feito explicitamente
+        }
+        
+        // Redirecionar APENAS se for um login inicial explícito (vindo da tela de login)
+        if (event === 'SIGNED_IN' && isInitialLogin.current) {
+          console.log('Login inicial detectado, redirecionando para dashboard');
+          isInitialLogin.current = false; // Resetar para evitar redirecionamentos futuros
+          router.push('/dashboard');
+        } else if (event === 'SIGNED_IN') {
+          console.log('Sessão atualizada ou token renovado, mantendo na página atual');
+        }
       });
 
       // Limpar o listener quando o componente for desmontado
@@ -83,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  // Função de login
+  // Função de login - aqui definimos que é um login inicial explícito
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { 
@@ -94,6 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setIsLoading(true);
+      
+      // Marcar como login inicial explícito para permitir redirecionamento
+      isInitialLogin.current = true;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -146,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       
-      // Redirecionar para o login é feito pelo listener de autenticação
+      // O redirecionamento é feito pela página de logout, não aqui
       return { success: true };
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
@@ -226,11 +251,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      // Apenas atualizar os dados do usuário em memória
+      // Apenas atualizar os dados do usuário em memória sem redirecionamento
       setUser(data.user);
       
       // Se o usuário estiver logado, forçar uso de dados reais
-      // mas sem redirecionar ou recarregar a página
       if (data.user) {
         forceRealData();
       }
