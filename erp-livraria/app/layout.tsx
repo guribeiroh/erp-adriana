@@ -6,7 +6,7 @@ import { AuthProvider } from '../lib/context/AuthContext';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ERP Livraria',
+  title: 'Livraria Adriana do Nascimento',
   description: 'Sistema de gerenciamento para livrarias',
 };
 

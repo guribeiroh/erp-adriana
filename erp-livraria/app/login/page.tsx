@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     console.log('============ PÁGINA DE LOGIN CARREGADA ============');
-    document.title = 'Login - ERP Livraria';
+    document.title = 'Login - Livraria Adriana do Nascimento';
     
     // Adicionar mensagem visível na página
     const messageElem = document.createElement('div');
@@ -111,7 +111,10 @@ export default function LoginPage() {
           <div className="mb-8">
             <div className="flex items-center gap-2 lg:hidden">
               <Book className="h-6 w-6 text-primary-600" />
-              <h1 className="text-xl font-bold text-primary-600">ERP Livraria</h1>
+              <div>
+                <h1 className="text-xs font-medium text-primary-400">Livraria</h1>
+                <h2 className="text-xl font-bold text-primary-600">Adriana do Nascimento</h2>
+              </div>
             </div>
             <h2 className="mt-6 text-2xl font-bold text-neutral-900">Acesso ao Sistema</h2>
             <p className="mt-2 text-sm text-neutral-600">

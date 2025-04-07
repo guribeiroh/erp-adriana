@@ -85,7 +85,10 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
             <div className="flex h-16 items-center justify-between px-4 border-b border-neutral-200">
               <Link href="/dashboard" className="flex items-center gap-2">
                 <BookOpen className="h-6 w-6 text-primary-600" />
-                <span className="text-lg font-semibold text-primary-600">ERP Livraria</span>
+                <div>
+                  <div className="text-xs font-medium text-primary-400">Livraria</div>
+                  <div className="text-lg font-semibold text-primary-600">Adriana do Nascimento</div>
+                </div>
               </Link>
               <button 
                 onClick={() => setSidebarOpen(false)}
@@ -106,7 +109,10 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
         <div className="flex h-16 items-center justify-center border-b border-neutral-200">
           <Link href="/dashboard" className="flex items-center gap-2">
             <BookOpen className="h-6 w-6 text-primary-600" />
-            <span className="text-lg font-semibold text-primary-600">ERP Livraria</span>
+            <div>
+              <div className="text-xs font-medium text-primary-400">Livraria</div>
+              <div className="text-lg font-semibold text-primary-600">Adriana do Nascimento</div>
+            </div>
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto p-4">

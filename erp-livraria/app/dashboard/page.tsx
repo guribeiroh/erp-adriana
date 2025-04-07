@@ -12,6 +12,23 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [greeting, setGreeting] = useState<string>('');
+
+  // Função para obter a saudação baseada no horário de Brasília
+  const getGreeting = () => {
+    // Obter hora atual no fuso horário de Brasília (GMT-3)
+    const now = new Date();
+    const hoursUTC = now.getUTCHours();
+    const hoursBrasilia = (hoursUTC - 3 + 24) % 24; // Ajusta para GMT-3 (Brasília)
+    
+    if (hoursBrasilia >= 5 && hoursBrasilia < 12) {
+      return "Bom dia";
+    } else if (hoursBrasilia >= 12 && hoursBrasilia < 18) {
+      return "Boa tarde";
+    } else {
+      return "Boa noite";
+    }
+  };
 
   // Função para formatar valores monetários
   const formatCurrency = (value: number): string => {
@@ -20,6 +37,9 @@ export default function DashboardPage() {
 
   // Efeito para carregar os dados do dashboard
   useEffect(() => {
+    // Definir a saudação apropriada
+    setGreeting(getGreeting());
+    
     async function loadDashboardData() {
       try {
         setLoading(true);
@@ -90,7 +110,7 @@ export default function DashboardPage() {
         <div className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 p-8 text-white shadow-soft">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="mb-1 text-2xl font-bold">Bom dia, Usuário!</h1>
+              <h1 className="mb-1 text-2xl font-bold">{greeting}!</h1>
               <p className="text-primary-100">Aqui está um resumo da sua livraria para hoje.</p>
             </div>
           </div>
