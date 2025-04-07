@@ -31,7 +31,6 @@ const menuLinks = [
   { href: '/dashboard/estoque', label: 'Estoque', icon: BookOpen },
   { href: '/dashboard/produtos', label: 'Livros', icon: Package },
   { href: '/dashboard/financeiro', label: 'Financeiro', icon: DollarSign },
-  { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 interface DashboardLayoutProps {
@@ -178,14 +177,6 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
                     >
                       <User className="mr-2 h-4 w-4" />
                       Perfil
-                    </Link>
-                    <Link
-                      href="/dashboard/configuracoes"
-                      className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      onClick={() => setProfileMenuOpen(false)}
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      Configurações
                     </Link>
                     <button
                       onClick={handleLogout}
