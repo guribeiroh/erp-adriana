@@ -509,8 +509,7 @@ export async function finalizeSale(
       
       const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
       
-      // Usar o formato 'date-string' que retorna apenas a data (YYYY-MM-DD)
-      // sem componente de hora, para evitar problemas de fuso horário
+      // Usar a data atual no formato correto
       const dataAtual = getCurrentBrazilianDate('date-string');
       
       const dadosTransacao = {
@@ -534,21 +533,20 @@ export async function finalizeSale(
       try {
         console.log(`Enviando data para função RPC: ${dadosTransacao.data} (formato YYYY-MM-DD)`);
         
-        // SOLUÇÃO DIRETA: Usar explicitamente a data correta no formato YYYY-MM-DD
-        // Definindo explicitamente a data atual em Brasília: 5 de abril de 2025
-        const dataFormatada = '2025-04-05';
+        // Usar a data atual no formato correto
+        const dataAtual = getCurrentBrazilianDate('date-string');
         
-        console.log(`Data formatada manualmente: ${dataFormatada} (5 de abril de 2025 - Brasília)`);
+        console.log(`Data atual formatada: ${dataAtual}`);
         
         const { data: rpcData, error: rpcError } = await supabase.rpc('insert_financial_transaction_brasilia', {
           p_descricao: dadosTransacao.descricao,
           p_valor: dadosTransacao.valor,
-          p_data: dataFormatada, // Usar data explícita
+          p_data: dataAtual, // Usar data atual
           p_tipo: dadosTransacao.tipo,
           p_categoria: dadosTransacao.categoria,
           p_status: dadosTransacao.status,
           p_datavencimento: null,
-          p_datapagamento: dataFormatada, // Usar a mesma data para pagamento
+          p_datapagamento: dataAtual, // Usar a mesma data para pagamento
           p_formapagamento: dadosTransacao.formaPagamento,
           p_observacoes: dadosTransacao.observacoes,
           p_vinculoid: dadosTransacao.vinculoId,
@@ -639,16 +637,16 @@ function registrarTransacaoAlternativa(
     // Usar o método direto de salvar em localStorage sem tentar Supabase primeiro
     const id = `TRX${Date.now()}`;
     
-    // Usar a data explícita para Brasília
-    const dataFormatada = '2025-04-05';
-    console.log(`Data formatada manualmente (alternativa): ${dataFormatada} (5 de abril de 2025 - Brasília)`);
+    // Usar a data atual
+    const dataAtual = getCurrentBrazilianDate('date-string');
+    console.log(`Data atual formatada (alternativa): ${dataAtual}`);
     
     const novaTransacao = {
       id,
       descricao: `Venda (Recuperação) - ${nomeCliente}`,
       valor,
-      data: dataFormatada,
-      dataPagamento: dataFormatada,
+      data: dataAtual,
+      dataPagamento: dataAtual,
       tipo: 'receita' as const,
       categoria: 'Vendas',
       status: 'confirmada' as const,

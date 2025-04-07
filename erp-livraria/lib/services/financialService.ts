@@ -69,21 +69,10 @@ function supabaseToTransacao(dados: TransacaoSupabase): Transacao {
     if (!dataStr) return undefined;
     
     try {
-      // SOLUÇÃO DIRETA: Se a data está próxima a abril de 2025, usar data fixa
-      const data = new Date(dataStr);
-      const ano = data.getFullYear();
-      const mes = data.getMonth() + 1; // getMonth retorna 0-11
-      
-      // Se estamos em abril de 2025 ou próximo, usar data fixa
-      if ((ano === 2025 && mes === 4) || 
-          (ano === 2025 && (mes === 3 || mes === 5))) {
-        console.log(`Detectada data de abril de 2025 (${dataStr}), usando data fixa 2025-04-05`);
-        return '2025-04-05';
-      }
-      
       // Criar data considerando que o timestamp já está em UTC
       // Ajustar para o fuso de Brasília (UTC-3)
       // Obter o offset do fuso horário de Brasília em minutos (normalmente -180 minutos)
+      const data = new Date(dataStr);
       const brasiliaOffset = -180; // UTC-3 em minutos
       
       // Calcular a diferença entre o fuso local e o de Brasília
