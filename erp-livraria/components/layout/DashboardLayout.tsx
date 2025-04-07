@@ -152,14 +152,6 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
                       <div className="font-medium">{user?.email || 'Usuário'}</div>
                       <div className="text-xs text-neutral-500">Logado</div>
                     </div>
-                    <Link
-                      href="/dashboard/perfil"
-                      className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      onClick={() => setProfileMenuOpen(false)}
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      Perfil
-                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
