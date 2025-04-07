@@ -15,12 +15,17 @@ import {
   History, 
   RefreshCw, 
   Truck,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { bookService, Book } from "@/lib/services/bookService";
 import { stockService, StockMovementWithBook } from "@/lib/services/stockService";
 import { useRouter } from "next/navigation";
 import { formatBrazilianDate } from '@/lib/utils/date';
+
+// Número de itens por página
+const ITENS_POR_PAGINA = 20;
 
 // Interface para livro com status de estoque calculado
 interface BookWithStockStatus extends Book {
@@ -42,6 +47,11 @@ export default function EstoquePage() {
   
   // Estado para movimentações de estoque
   const [movimentacoes, setMovimentacoes] = useState<StockMovementWithBook[]>([]);
+  
+  // Estados de paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [produtosPaginados, setProdutosPaginados] = useState<BookWithStockStatus[]>([]);
   
   const router = useRouter();
   
@@ -145,7 +155,34 @@ export default function EstoquePage() {
     }
     
     setProdutosFiltrados(resultado);
+    
+    // Resetar para a primeira página sempre que os filtros mudarem
+    setPaginaAtual(1);
+    
+    // Calcular total de páginas
+    setTotalPaginas(Math.ceil(resultado.length / ITENS_POR_PAGINA) || 1);
   }, [busca, filtro, ordenacao, livros]);
+  
+  // Efeito para aplicar paginação
+  useEffect(() => {
+    aplicarPaginacao();
+  }, [produtosFiltrados, paginaAtual]);
+  
+  // Função para aplicar paginação
+  const aplicarPaginacao = () => {
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA;
+    
+    setProdutosPaginados(produtosFiltrados.slice(inicio, fim));
+  };
+  
+  // Função para mudar de página
+  const mudarPagina = (novaPagina: number) => {
+    if (novaPagina >= 1 && novaPagina <= totalPaginas) {
+      setPaginaAtual(novaPagina);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Handler para alterar ordenação
   const handleOrdenacaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -318,70 +355,156 @@ export default function EstoquePage() {
         {!carregando && !erro && (
           <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm">
             {produtosFiltrados.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left">
-                  <thead className="bg-neutral-50">
-                    <tr>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Título</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">ISBN</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Categoria</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Preço</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Estoque</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Mínimo</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Últ. Entrada</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Últ. Saída</th>
-                      <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200">
-                    {produtosFiltrados.map((produto) => (
-                      <tr 
-                        key={produto.id} 
-                        className="hover:bg-neutral-50 cursor-pointer"
-                        onClick={() => router.push(`/dashboard/estoque/historico?produto=${produto.id}`)}
-                      >
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-neutral-900">{produto.title}</div>
-                          <div className="text-sm text-neutral-500">{produto.author}</div>
-                        </td>
-                        <td className="px-4 py-3 text-neutral-700">{produto.isbn}</td>
-                        <td className="px-4 py-3 text-neutral-700">{produto.category}</td>
-                        <td className="px-4 py-3 text-neutral-700">
-                          R$ {produto.selling_price.toFixed(2).replace('.', ',')}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-neutral-900">
-                          {produto.quantity}
-                        </td>
-                        <td className="px-4 py-3 text-neutral-700">
-                          {produto.minimum_stock}
-                        </td>
-                        <td className="px-4 py-3 text-neutral-700">
-                          {formatarData(produto.ultimaEntrada)}
-                        </td>
-                        <td className="px-4 py-3 text-neutral-700">
-                          {formatarData(produto.ultimaSaida)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                            ${produto.status === 'normal' 
-                              ? 'bg-green-100 text-green-800' 
-                              : produto.status === 'baixo' 
-                                ? 'bg-amber-100 text-amber-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                            {produto.status === 'normal' 
-                              ? 'Normal' 
-                              : produto.status === 'baixo' 
-                                ? 'Baixo' 
-                                : 'Crítico'
-                            }
-                          </div>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left">
+                    <thead className="bg-neutral-50">
+                      <tr>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Título</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">ISBN</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Categoria</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Preço</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Estoque</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Mínimo</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Últ. Entrada</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Últ. Saída</th>
+                        <th className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-500">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200">
+                      {produtosPaginados.map((produto) => (
+                        <tr 
+                          key={produto.id} 
+                          className="hover:bg-neutral-50 cursor-pointer"
+                          onClick={() => router.push(`/dashboard/estoque/historico?produto=${produto.id}`)}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-neutral-900">{produto.title}</div>
+                            <div className="text-sm text-neutral-500">{produto.author}</div>
+                          </td>
+                          <td className="px-4 py-3 text-neutral-700">{produto.isbn}</td>
+                          <td className="px-4 py-3 text-neutral-700">{produto.category}</td>
+                          <td className="px-4 py-3 text-neutral-700">
+                            R$ {produto.selling_price.toFixed(2).replace('.', ',')}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-neutral-900">
+                            {produto.quantity}
+                          </td>
+                          <td className="px-4 py-3 text-neutral-700">
+                            {produto.minimum_stock}
+                          </td>
+                          <td className="px-4 py-3 text-neutral-700">
+                            {formatarData(produto.ultimaEntrada)}
+                          </td>
+                          <td className="px-4 py-3 text-neutral-700">
+                            {formatarData(produto.ultimaSaida)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                              ${produto.status === 'normal' 
+                                ? 'bg-green-100 text-green-800' 
+                                : produto.status === 'baixo' 
+                                  ? 'bg-amber-100 text-amber-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                              {produto.status === 'normal' 
+                                ? 'Normal' 
+                                : produto.status === 'baixo' 
+                                  ? 'Baixo' 
+                                  : 'Crítico'
+                              }
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Paginação */}
+                {totalPaginas > 1 && (
+                  <div className="border-t border-neutral-200 bg-white px-4 py-3 flex items-center justify-between sm:px-6">
+                    <div className="flex-1 flex justify-between sm:hidden">
+                      <button
+                        onClick={() => mudarPagina(paginaAtual - 1)}
+                        disabled={paginaAtual === 1}
+                        className="relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Anterior
+                      </button>
+                      <button
+                        onClick={() => mudarPagina(paginaAtual + 1)}
+                        disabled={paginaAtual === totalPaginas}
+                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Próxima
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm text-neutral-700">
+                          Mostrando <span className="font-medium">{(paginaAtual - 1) * ITENS_POR_PAGINA + 1}</span> a{" "}
+                          <span className="font-medium">
+                            {Math.min(paginaAtual * ITENS_POR_PAGINA, produtosFiltrados.length)}
+                          </span>{" "}
+                          de <span className="font-medium">{produtosFiltrados.length}</span> resultados
+                        </p>
+                      </div>
+                      <div>
+                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginação">
+                          <button
+                            onClick={() => mudarPagina(paginaAtual - 1)}
+                            disabled={paginaAtual === 1}
+                            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <span className="sr-only">Anterior</span>
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          
+                          {/* Lógica de renderização dos números de página */}
+                          {Array.from({ length: Math.min(5, totalPaginas) }).map((_, i) => {
+                            let pageNumber;
+                            
+                            // Lógica para mostrar as páginas certas quando há muitas
+                            if (totalPaginas <= 5) {
+                              pageNumber = i + 1;
+                            } else if (paginaAtual <= 3) {
+                              pageNumber = i + 1;
+                            } else if (paginaAtual >= totalPaginas - 2) {
+                              pageNumber = totalPaginas - 4 + i;
+                            } else {
+                              pageNumber = paginaAtual - 2 + i;
+                            }
+                            
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => mudarPagina(pageNumber)}
+                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                  paginaAtual === pageNumber
+                                    ? 'bg-primary-50 text-primary-600 border-primary-500'
+                                    : 'bg-white text-neutral-500 border-neutral-300 hover:bg-neutral-50'
+                                }`}
+                              >
+                                {pageNumber}
+                              </button>
+                            );
+                          })}
+                          
+                          <button
+                            onClick={() => mudarPagina(paginaAtual + 1)}
+                            disabled={paginaAtual === totalPaginas}
+                            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <span className="sr-only">Próxima</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex h-40 items-center justify-center text-neutral-500">
                 <Package className="mr-3 h-5 w-5" />

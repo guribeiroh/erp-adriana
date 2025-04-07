@@ -3,8 +3,11 @@
 import { useState, useEffect, Fragment } from "react";
 import Link from "next/link";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
-import { Package, Plus, Search, Filter, ArrowUpDown, Edit, Trash2, Eye, AlertTriangle, RefreshCw, Image, X } from "lucide-react";
+import { Package, Plus, Search, Filter, ArrowUpDown, Edit, Trash2, Eye, AlertTriangle, RefreshCw, Image, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+
+// Número de itens por página
+const ITENS_POR_PAGINA = 20;
 
 // Tipo para os produtos
 interface Produto {
@@ -42,6 +45,11 @@ export default function ProdutosPage() {
   const [produtosFiltrados, setProdutosFiltrados] = useState<Produto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  
+  // Estados de paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [produtosPaginados, setProdutosPaginados] = useState<Produto[]>([]);
   
   // Estado para o modal de visualização da imagem
   const [imagemModal, setImagemModal] = useState<{url: string, titulo: string} | null>(null);
@@ -100,18 +108,46 @@ export default function ProdutosPage() {
     setBusca(termo);
     if (!termo.trim()) {
       setProdutosFiltrados(produtos);
-      return;
+    } else {
+      const termoBusca = termo.toLowerCase();
+      const resultados = produtos.filter(produto =>
+        produto.nome?.toLowerCase().includes(termoBusca) ||
+        produto.codigo?.toLowerCase().includes(termoBusca) ||
+        produto.categoria?.toLowerCase().includes(termoBusca) ||
+        produto.author?.toLowerCase().includes(termoBusca)
+      );
+      
+      setProdutosFiltrados(resultados);
     }
     
-    const termoBusca = termo.toLowerCase();
-    const resultados = produtos.filter(produto =>
-      produto.nome?.toLowerCase().includes(termoBusca) ||
-      produto.codigo?.toLowerCase().includes(termoBusca) ||
-      produto.categoria?.toLowerCase().includes(termoBusca) ||
-      produto.author?.toLowerCase().includes(termoBusca)
-    );
+    // Resetar para a primeira página sempre que a busca mudar
+    setPaginaAtual(1);
+  };
+  
+  // Efeito para calcular o total de páginas
+  useEffect(() => {
+    setTotalPaginas(Math.ceil(produtosFiltrados.length / ITENS_POR_PAGINA) || 1);
+  }, [produtosFiltrados]);
+  
+  // Efeito para aplicar paginação
+  useEffect(() => {
+    aplicarPaginacao();
+  }, [produtosFiltrados, paginaAtual]);
+  
+  // Função para aplicar paginação
+  const aplicarPaginacao = () => {
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA;
     
-    setProdutosFiltrados(resultados);
+    setProdutosPaginados(produtosFiltrados.slice(inicio, fim));
+  };
+  
+  // Função para mudar de página
+  const mudarPagina = (novaPagina: number) => {
+    if (novaPagina >= 1 && novaPagina <= totalPaginas) {
+      setPaginaAtual(novaPagina);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // Função para abrir o modal de imagem
@@ -274,7 +310,7 @@ export default function ProdutosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
-                  {produtosFiltrados.map((produto) => (
+                  {produtosPaginados.map((produto) => (
                     <tr key={produto.id} className="hover:bg-neutral-50">
                       <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-neutral-900">
                         <Link href={`/dashboard/produtos/${produto.id}`}>
@@ -363,16 +399,85 @@ export default function ProdutosPage() {
             
             {/* Paginação */}
             <div className="flex items-center justify-between border-t border-neutral-200 bg-white px-4 py-3">
-              <div className="text-sm text-neutral-700">
-                Exibindo <span className="font-medium">{produtosFiltrados.length}</span> de <span className="font-medium">{produtos.length}</span> produtos
-              </div>
-              <div className="flex gap-1">
-                <button className="rounded border border-neutral-300 bg-white px-3 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50" disabled>
+              <div className="flex-1 flex sm:hidden justify-between">
+                <button
+                  onClick={() => mudarPagina(paginaAtual - 1)}
+                  disabled={paginaAtual === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Anterior
                 </button>
-                <button className="rounded border border-neutral-300 bg-white px-3 py-1 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50" disabled>
+                <button
+                  onClick={() => mudarPagina(paginaAtual + 1)}
+                  disabled={paginaAtual === totalPaginas}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Próxima
                 </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-neutral-700">
+                    Mostrando <span className="font-medium">{(paginaAtual - 1) * ITENS_POR_PAGINA + 1}</span> a{" "}
+                    <span className="font-medium">
+                      {Math.min(paginaAtual * ITENS_POR_PAGINA, produtosFiltrados.length)}
+                    </span>{" "}
+                    de <span className="font-medium">{produtosFiltrados.length}</span> resultados
+                  </p>
+                </div>
+                {totalPaginas > 1 && (
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginação">
+                      <button
+                        onClick={() => mudarPagina(paginaAtual - 1)}
+                        disabled={paginaAtual === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Anterior</span>
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      
+                      {/* Lógica de renderização dos números de página */}
+                      {Array.from({ length: Math.min(5, totalPaginas) }).map((_, i) => {
+                        let pageNumber;
+                        
+                        // Lógica para mostrar as páginas certas quando há muitas
+                        if (totalPaginas <= 5) {
+                          pageNumber = i + 1;
+                        } else if (paginaAtual <= 3) {
+                          pageNumber = i + 1;
+                        } else if (paginaAtual >= totalPaginas - 2) {
+                          pageNumber = totalPaginas - 4 + i;
+                        } else {
+                          pageNumber = paginaAtual - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => mudarPagina(pageNumber)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              paginaAtual === pageNumber
+                                ? 'bg-primary-50 text-primary-600 border-primary-500'
+                                : 'bg-white text-neutral-500 border-neutral-300 hover:bg-neutral-50'
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        onClick={() => mudarPagina(paginaAtual + 1)}
+                        disabled={paginaAtual === totalPaginas}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Próxima</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </nav>
+                  </div>
+                )}
               </div>
             </div>
           </div>

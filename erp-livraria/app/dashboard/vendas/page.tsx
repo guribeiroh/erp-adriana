@@ -19,12 +19,17 @@ import {
   ChevronDown,
   User,
   MoreHorizontal,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { fetchRecentSales } from "@/lib/services/pdvService";
 import { supabase } from "@/lib/supabase/client";
 import { Sale } from "@/models/database.types";
 import { formatBrazilianDate, getCurrentBrazilianDate } from "@/lib/utils/date";
+
+// Número de itens por página
+const ITENS_POR_PAGINA = 20;
 
 // Tipos para vendas
 interface VendaCompleta extends Sale {
@@ -47,6 +52,11 @@ export default function VendasPage() {
   const [metodoPagamentoSelecionado, setMetodoPagamentoSelecionado] = useState("todos");
   const [ordenacao, setOrdenacao] = useState({ campo: "created_at", ordem: "desc" });
   const [termoBusca, setTermoBusca] = useState("");
+  
+  // Estados para paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [vendasPaginadas, setVendasPaginadas] = useState<VendaCompleta[]>([]);
 
   // Carregar vendas ao montar o componente
   useEffect(() => {
@@ -182,6 +192,39 @@ export default function VendasPage() {
       
       return 0;
     });
+  
+  // Efeito para aplicar paginação e calcular total de páginas
+  useEffect(() => {
+    // Calcular total de páginas
+    setTotalPaginas(Math.ceil(vendasFiltradas.length / ITENS_POR_PAGINA) || 1);
+    
+    // Resetar para a primeira página sempre que os filtros mudarem
+    setPaginaAtual(1);
+    
+    // Aplicar paginação
+    aplicarPaginacao();
+  }, [vendasFiltradas.length, periodoSelecionado, statusSelecionado, metodoPagamentoSelecionado, termoBusca, ordenacao]);
+  
+  // Efeito para atualizar as vendas paginadas quando a página atual mudar
+  useEffect(() => {
+    aplicarPaginacao();
+  }, [paginaAtual]);
+  
+  // Função para aplicar paginação
+  const aplicarPaginacao = () => {
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA;
+    
+    setVendasPaginadas(vendasFiltradas.slice(inicio, fim));
+  };
+  
+  // Função para mudar de página
+  const mudarPagina = (novaPagina: number) => {
+    if (novaPagina >= 1 && novaPagina <= totalPaginas) {
+      setPaginaAtual(novaPagina);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
   
   // Função para formatar a data
   const formatarData = (dataString: string) => {
@@ -393,7 +436,7 @@ export default function VendasPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 bg-white">
-                  {vendasFiltradas.map((venda) => (
+                  {vendasPaginadas.map((venda) => (
                     <tr key={venda.id} className="hover:bg-neutral-50">
                       <td className="whitespace-nowrap px-4 py-4 text-sm text-neutral-900">
                         {formatarData(venda.created_at)}
@@ -448,6 +491,90 @@ export default function VendasPage() {
                 ))}
               </tbody>
             </table>
+            
+            {/* Paginação */}
+            {totalPaginas > 1 && (
+              <div className="border-t border-neutral-200 bg-white px-4 py-3 flex items-center justify-between sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => mudarPagina(paginaAtual - 1)}
+                    disabled={paginaAtual === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    onClick={() => mudarPagina(paginaAtual + 1)}
+                    disabled={paginaAtual === totalPaginas}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Próxima
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-neutral-700">
+                      Mostrando <span className="font-medium">{vendasFiltradas.length > 0 ? (paginaAtual - 1) * ITENS_POR_PAGINA + 1 : 0}</span> a{" "}
+                      <span className="font-medium">
+                        {Math.min(paginaAtual * ITENS_POR_PAGINA, vendasFiltradas.length)}
+                      </span>{" "}
+                      de <span className="font-medium">{vendasFiltradas.length}</span> resultados
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginação">
+                      <button
+                        onClick={() => mudarPagina(paginaAtual - 1)}
+                        disabled={paginaAtual === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Anterior</span>
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      
+                      {/* Lógica de renderização dos números de página */}
+                      {Array.from({ length: Math.min(5, totalPaginas) }).map((_, i) => {
+                        let pageNumber;
+                        
+                        // Lógica para mostrar as páginas certas quando há muitas
+                        if (totalPaginas <= 5) {
+                          pageNumber = i + 1;
+                        } else if (paginaAtual <= 3) {
+                          pageNumber = i + 1;
+                        } else if (paginaAtual >= totalPaginas - 2) {
+                          pageNumber = totalPaginas - 4 + i;
+                        } else {
+                          pageNumber = paginaAtual - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => mudarPagina(pageNumber)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              paginaAtual === pageNumber
+                                ? 'bg-primary-50 text-primary-600 border-primary-500'
+                                : 'bg-white text-neutral-500 border-neutral-300 hover:bg-neutral-50'
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        onClick={() => mudarPagina(paginaAtual + 1)}
+                        disabled={paginaAtual === totalPaginas}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Próxima</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           )}
         </div>

@@ -20,10 +20,15 @@ import {
   AlertTriangle,
   RefreshCw,
   UserX,
-  User
+  User,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Customer } from "@/models/database.types";
+
+// Número de itens por página
+const ITENS_POR_PAGINA = 20;
 
 export default function ClientesPage() {
   const [busca, setBusca] = useState("");
@@ -33,6 +38,11 @@ export default function ClientesPage() {
   const [ordenacao, setOrdenacao] = useState("name-asc"); // name-asc, name-desc, data-asc, data-desc
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  
+  // Estados de paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [clientesPaginados, setClientesPaginados] = useState<Customer[]>([]);
   
   // Carregar clientes do Supabase
   useEffect(() => {
@@ -99,7 +109,34 @@ export default function ClientesPage() {
     }
     
     setClientesFiltrados(resultado);
+    
+    // Resetar para a primeira página sempre que os filtros mudarem
+    setPaginaAtual(1);
+    
+    // Calcular total de páginas
+    setTotalPaginas(Math.ceil(resultado.length / ITENS_POR_PAGINA) || 1);
   }, [busca, ordenacao, clientes]);
+  
+  // Efeito para aplicar paginação
+  useEffect(() => {
+    aplicarPaginacao();
+  }, [clientesFiltrados, paginaAtual]);
+  
+  // Função para aplicar paginação
+  const aplicarPaginacao = () => {
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA;
+    
+    setClientesPaginados(clientesFiltrados.slice(inicio, fim));
+  };
+  
+  // Função para mudar de página
+  const mudarPagina = (novaPagina: number) => {
+    if (novaPagina >= 1 && novaPagina <= totalPaginas) {
+      setPaginaAtual(novaPagina);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Handler para alterar ordenação
   const handleOrdenacaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -285,7 +322,7 @@ export default function ClientesPage() {
           
           {/* Dados da tabela */}
           <div className="divide-y divide-neutral-200">
-            {clientesFiltrados.length === 0 ? (
+            {clientesPaginados.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
                   <UserX className="h-8 w-8" />
@@ -303,7 +340,7 @@ export default function ClientesPage() {
                 )}
               </div>
             ) : (
-              clientesFiltrados.map((cliente) => (
+              clientesPaginados.map((cliente) => (
                 <Link
                   key={cliente.id}
                   href={`/dashboard/clientes/${cliente.id}`}
@@ -359,6 +396,90 @@ export default function ClientesPage() {
               ))
             )}
           </div>
+          
+          {/* Paginação */}
+          {totalPaginas > 1 && (
+            <div className="border-t border-neutral-200 bg-white px-4 py-3 flex items-center justify-between sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => mudarPagina(paginaAtual - 1)}
+                  disabled={paginaAtual === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => mudarPagina(paginaAtual + 1)}
+                  disabled={paginaAtual === totalPaginas}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Próxima
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-neutral-700">
+                    Mostrando <span className="font-medium">{(paginaAtual - 1) * ITENS_POR_PAGINA + 1}</span> a{" "}
+                    <span className="font-medium">
+                      {Math.min(paginaAtual * ITENS_POR_PAGINA, clientesFiltrados.length)}
+                    </span>{" "}
+                    de <span className="font-medium">{clientesFiltrados.length}</span> resultados
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginação">
+                    <button
+                      onClick={() => mudarPagina(paginaAtual - 1)}
+                      disabled={paginaAtual === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Anterior</span>
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    
+                    {/* Lógica de renderização dos números de página */}
+                    {Array.from({ length: Math.min(5, totalPaginas) }).map((_, i) => {
+                      let pageNumber;
+                      
+                      // Lógica para mostrar as páginas certas quando há muitas
+                      if (totalPaginas <= 5) {
+                        pageNumber = i + 1;
+                      } else if (paginaAtual <= 3) {
+                        pageNumber = i + 1;
+                      } else if (paginaAtual >= totalPaginas - 2) {
+                        pageNumber = totalPaginas - 4 + i;
+                      } else {
+                        pageNumber = paginaAtual - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => mudarPagina(pageNumber)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            paginaAtual === pageNumber
+                              ? 'bg-primary-50 text-primary-600 border-primary-500'
+                              : 'bg-white text-neutral-500 border-neutral-300 hover:bg-neutral-50'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => mudarPagina(paginaAtual + 1)}
+                      disabled={paginaAtual === totalPaginas}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-neutral-300 bg-white text-sm font-medium text-neutral-500 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Próxima</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
