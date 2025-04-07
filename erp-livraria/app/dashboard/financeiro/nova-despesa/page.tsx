@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import DashboardLayout from "@/components/DashboardLayout";
-import { createTransacao } from "@/lib/services/financialService";
+import DashboardLayout from "../../../../components/layout/DashboardLayout";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -24,12 +23,6 @@ import {
   Store,
   CreditCard
 } from "lucide-react";
-import { categoriasDespesas, meiosPagamento } from '@/lib/constants/financeiro';
-import { Combobox } from '@/components/ui/Combobox';
-import { DatePicker } from '@/components/ui/DatePicker';
-import { getSuppliers, createSupplier } from '@/lib/services/supplierService';
-import { cn, formatCurrency, formatDate, formatDecimal } from '@/lib/utils';
-import { dueValueInDays } from '@/lib/constants';
 
 // Tipos
 type FormaPagamento = "dinheiro" | "credito" | "debito" | "pix" | "boleto" | "transferencia";
@@ -42,6 +35,10 @@ interface Fornecedor {
 }
 
 // Dados simulados
+const categoriasDespesas = [
+  "Fornecedores", "Estoque", "Aluguel", "Salários", "Impostos", "Serviços", "Marketing", "Manutenção", "Outros"
+];
+
 const fornecedores: Fornecedor[] = [
   { id: "F001", nome: "Editora Companhia das Letras", cpfCnpj: "45.987.245/0001-92" },
   { id: "F002", nome: "Distribuidora Nacional de Livros", cpfCnpj: "21.654.321/0001-87" },
@@ -57,10 +54,8 @@ export default function NovaDespesaPage() {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [data, setData] = useState<Date | undefined>(new Date());
-  const [dataVencimento, setDataVencimento] = useState<Date | undefined>(
-    new Date(new Date().setDate(new Date().getDate() + dueValueInDays))
-  );
+  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [dataVencimento, setDataVencimento] = useState("");
   const [dataPagamento, setDataPagamento] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>("dinheiro");
   const [observacoes, setObservacoes] = useState("");
@@ -82,15 +77,7 @@ export default function NovaDespesaPage() {
   // Estados de submissão
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [errors, setErrors] = useState<{
-    descricao?: string;
-    valor?: string;
-    categoria?: string;
-    meioPagamento?: string;
-    data?: string;
-    dataVencimento?: string;
-    geral?: string;
-  }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Handler para formatar valor monetário
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,98 +152,65 @@ export default function NovaDespesaPage() {
   
   // Validar formulário
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors: Record<string, string> = {};
     
-    if (!descricao.trim()) newErrors.descricao = 'Descrição é obrigatória';
-    if (!valor.trim()) newErrors.valor = 'Valor é obrigatório';
-    if (!categoria) newErrors.categoria = 'Categoria é obrigatória';
-    if (!data) newErrors.data = 'Data é obrigatória';
-    if (!dataVencimento) newErrors.dataVencimento = 'Data de vencimento é obrigatória';
+    if (!descricao.trim()) {
+      newErrors.descricao = "A descrição é obrigatória";
+    }
+    
+    if (!valor || parseFloat(valor.replace(/\./g, "").replace(",", ".")) <= 0) {
+      newErrors.valor = "O valor deve ser maior que zero";
+    }
+    
+    if (!categoria) {
+      newErrors.categoria = "A categoria é obrigatória";
+    }
+    
+    if (!data) {
+      newErrors.data = "A data é obrigatória";
+    }
+    
+    if (!dataVencimento) {
+      newErrors.dataVencimento = "A data de vencimento é obrigatória";
+    }
+    
+    if (isPago && !dataPagamento) {
+      newErrors.dataPagamento = "A data de pagamento é obrigatória";
+    }
+    
+    if (isPago && dataPagamento && new Date(dataPagamento) < new Date(data)) {
+      newErrors.dataPagamento = "A data de pagamento não pode ser anterior à data da despesa";
+    }
+    
+    if (isDespesaRecorrente && !dataFim) {
+      newErrors.dataFim = "A data de término é obrigatória para despesas recorrentes";
+    }
+    
+    if (isDespesaRecorrente && dataFim && new Date(dataFim) <= new Date(data)) {
+      newErrors.dataFim = "A data de término deve ser posterior à data inicial";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   
-  // Função para salvar despesa
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handler para submeter o formulário
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação do formulário
-    const newErrors: any = {};
-    
-    if (!descricao.trim()) newErrors.descricao = 'Descrição é obrigatória';
-    if (!valor.trim()) newErrors.valor = 'Valor é obrigatório';
-    if (!categoria) newErrors.categoria = 'Categoria é obrigatória';
-    if (!formaPagamento) newErrors.formaPagamento = 'Forma de pagamento é obrigatória';
-    if (!data) newErrors.data = 'Data é obrigatória';
-    if (!dataVencimento) newErrors.dataVencimento = 'Data de vencimento é obrigatória';
-    
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Converter o valor para número
-      const valorNumerico = parseFloat(
-        valor.replace('R$', '')
-        .replace(/\./g, '')
-        .replace(',', '.')
-        .trim()
-      );
+    if (validateForm()) {
+      setIsSubmitting(true);
       
-      if (isNaN(valorNumerico)) {
-        throw new Error('Valor inválido');
-      }
-      
-      // Preparar os dados da despesa
-      const dadosDespesa = {
-        descricao,
-        valor: valorNumerico,
-        categoria,
-        formaPagamento,
-        data: data instanceof Date ? data.toISOString() : new Date().toISOString(),
-        dataVencimento: dataVencimento instanceof Date ? dataVencimento.toISOString() : undefined,
-        dataPagamento: isPago && dataPagamento ? dataPagamento : undefined,
-        tipo: 'despesa' as const,
-        status: isPago ? 'confirmada' as const : 'pendente' as const,
-        observacoes,
-        vinculoTipo: fornecedorSelecionado ? 'fornecedor' as const : undefined,
-        vinculoId: fornecedorSelecionado?.id,
-        vinculoNome: fornecedorSelecionado?.nome,
-        comprovante: comprovante ? {
-          nome: comprovante.name,
-          tipo: comprovante.type,
-          tamanho: comprovante.size,
-          // Em uma implementação real, aqui seria feito o upload do arquivo
-          url: URL.createObjectURL(comprovante)
-        } : undefined
-      };
-      
-      console.log('Salvando despesa:', dadosDespesa);
-      
-      // Chamar o serviço para criar a transação
-      const resultado = await createTransacao(dadosDespesa);
-      
-      console.log('Despesa salva com sucesso:', resultado);
-      
-      setSuccess(true);
-      
-      // Redirecionar após um breve delay
+      // Simulação de envio para API
       setTimeout(() => {
-        router.push('/dashboard/financeiro');
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Erro ao salvar despesa:', error);
-      setErrors({
-        ...errors,
-        geral: error instanceof Error ? error.message : 'Ocorreu um erro ao salvar a despesa'
-      });
-      setIsSubmitting(false);
+        setIsSubmitting(false);
+        setSuccess(true);
+        
+        // Redirecionar após sucesso
+        setTimeout(() => {
+          router.push("/dashboard/financeiro");
+        }, 2000);
+      }, 1500);
     }
   };
   
@@ -468,8 +422,8 @@ export default function NovaDespesaPage() {
                   <input
                     type="date"
                     id="data"
-                    value={data?.toISOString().split('T')[0]}
-                    onChange={(e) => setData(new Date(e.target.value))}
+                    value={data}
+                    onChange={(e) => setData(e.target.value)}
                     className={`w-full rounded-lg border ${errors.data ? 'border-red-300' : 'border-neutral-300'} py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50`}
                   />
                 </div>
@@ -490,8 +444,8 @@ export default function NovaDespesaPage() {
                   <input
                     type="date"
                     id="data-vencimento"
-                    value={dataVencimento?.toISOString().split('T')[0]}
-                    onChange={(e) => setDataVencimento(new Date(e.target.value))}
+                    value={dataVencimento}
+                    onChange={(e) => setDataVencimento(e.target.value)}
                     className={`w-full rounded-lg border ${errors.dataVencimento ? 'border-red-300' : 'border-neutral-300'} py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50`}
                   />
                 </div>
@@ -700,90 +654,37 @@ export default function NovaDespesaPage() {
             </div>
           </div>
           
-          {/* Área de anexos */}
-          <div className="col-span-full mt-2">
-            <div className="rounded-lg border border-dashed border-neutral-300 p-4">
-              <div className="flex items-center justify-center flex-col py-6">
-                <input 
-                  type="file"
-                  id="comprovante"
-                  className="hidden"
-                  onChange={handleComprovanteChange}
-                />
-                <label 
-                  htmlFor="comprovante"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <FileText className="h-8 w-8 text-neutral-400 mb-2" />
-                  <div className="text-center">
-                    <span className="text-primary-600 font-medium">Clique para anexar</span>
-                    <p className="text-xs text-neutral-500 mt-1">PDF, JPEG ou PNG (máx. 2MB)</p>
-                  </div>
-                </label>
-                
-                {comprovante && (
-                  <div className="mt-3 w-full">
-                    <div className="flex items-center justify-between rounded-lg bg-neutral-50 p-2 text-sm">
-                      <div className="flex items-center">
-                        <FileText className="h-4 w-4 text-neutral-500 mr-2" />
-                        <span className="text-neutral-700 truncate" title={comprovante.name}>
-                          {comprovante.name}
-                        </span>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => setComprovante(null)}
-                        className="text-neutral-500 hover:text-red-500"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Botões de ação */}
+          <div className="flex justify-end gap-3">
+            <Link
+              href="/dashboard/financeiro"
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
+            >
+              Cancelar
+            </Link>
+            <button
+              type="submit"
+              disabled={isSubmitting || success}
+              className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:opacity-70"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processando...
+                </>
+              ) : success ? (
+                <>
+                  <Save className="h-4 w-4" />
+                  Despesa registrada!
+                </>
+              ) : (
+                <>
+                  <TrendingDown className="h-4 w-4" />
+                  Registrar Despesa
+                </>
+              )}
+            </button>
           </div>
-        </div>
-        
-        {/* Mensagem de erro geral */}
-        {errors.geral && (
-          <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-700">
-            <AlertCircle className="h-5 w-5 text-red-500" />
-            <span>{errors.geral}</span>
-          </div>
-        )}
-        
-        {/* Botões de ação */}
-        <div className="flex items-center justify-end gap-3">
-          <Link
-            href="/dashboard/financeiro"
-            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting || success}
-            className={`inline-flex items-center gap-2 rounded-lg ${success ? 'bg-green-500 hover:bg-green-600' : 'bg-primary-600 hover:bg-primary-700'} px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:bg-opacity-70`}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : success ? (
-              <>
-                <Check className="h-4 w-4" />
-                Despesa Salva
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Salvar Despesa
-              </>
-            )}
-          </button>
-        </div>
         </form>
       </div>
     </DashboardLayout>
