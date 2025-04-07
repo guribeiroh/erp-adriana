@@ -663,14 +663,6 @@ function FinanceiroPage() {
                 <ArrowDown className="h-4 w-4 text-red-500" />
                 <span className="hidden lg:ml-1 lg:inline">Contas a Pagar</span>
               </Link>
-              <Link 
-                href="/dashboard/financeiro/contas-receber"
-                className="inline-flex items-center rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-                title="Contas a Receber"
-              >
-                <ArrowUp className="h-4 w-4 text-green-500" />
-                <span className="hidden lg:ml-1 lg:inline">Contas a Receber</span>
-              </Link>
             </div>
           </div>
           
