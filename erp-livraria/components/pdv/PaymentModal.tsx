@@ -1,27 +1,7 @@
-import { useState } from 'react';
-import { Loader2, BanknoteIcon, CreditCardIcon, QrCodeIcon, ArrowRightIcon, PercentCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, CreditCard, Banknote, QrCode, CheckCircle, PercentCircle } from 'lucide-react';
 import { useCart } from '@/lib/context/CartContext';
 import { toast } from 'react-hot-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
-import {
-  Button
-} from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -30,205 +10,253 @@ interface PaymentModalProps {
   onConfirmPayment: (method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer', generalDiscount?: number) => void;
 }
 
-export default function PaymentModal({ isOpen, onClose, total, onConfirmPayment }: PaymentModalProps) {
+export default function PaymentModal({
+  isOpen,
+  onClose,
+  total,
+  onConfirmPayment
+}: PaymentModalProps) {
   const { subtotal, totalDiscount } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer'>('cash');
-  const [cashAmount, setCashAmount] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer'>('credit_card');
+  const [cashReceived, setCashReceived] = useState<string>('');
   const [generalDiscount, setGeneralDiscount] = useState<string>('');
   const [discountType, setDiscountType] = useState<'value' | 'percentage'>('value');
+  const [loading, setLoading] = useState(false);
 
-  const calculateGeneralDiscount = (): number => {
-    if (!generalDiscount || generalDiscount === '0') return 0;
-    
-    const discountValue = parseFloat(generalDiscount.replace(',', '.'));
-    if (isNaN(discountValue) || discountValue <= 0) return 0;
-    
-    if (discountType === 'percentage') {
-      // Limitar percentual a 100%
-      const safePercentage = Math.min(discountValue, 100);
-      return (total * safePercentage) / 100;
-    } else {
-      // Limitar desconto ao valor total
-      return Math.min(discountValue, total);
-    }
-  };
+  if (!isOpen) return null;
 
-  const finalTotal = Math.max(0, total - calculateGeneralDiscount());
-  const change = cashAmount 
-    ? Math.max(0, parseFloat(cashAmount.replace(',', '.')) - finalTotal) 
-    : 0;
-
-  const handleConfirmPayment = async () => {
-    if (paymentMethod === 'cash' && (!cashAmount || parseFloat(cashAmount.replace(',', '.')) < finalTotal)) {
+  const handleConfirmPayment = () => {
+    if (selectedMethod === 'cash' && parseAmount(cashReceived) < finalTotal) {
       toast.error('O valor em dinheiro deve ser maior ou igual ao total da venda');
       return;
     }
+    
+    setLoading(true);
+    
+    // Calcular o desconto geral
+    const discountAmount = calculateGeneralDiscount();
+    
+    // Simular um leve atraso para melhor experiência de usuário
+    setTimeout(() => {
+      onConfirmPayment(selectedMethod, discountAmount);
+      setLoading(false);
+    }, 500);
+  };
 
-    try {
-      setIsLoading(true);
-      await onConfirmPayment(paymentMethod, calculateGeneralDiscount());
-      onClose();
-    } catch (error) {
-      console.error('Erro ao confirmar pagamento:', error);
-      toast.error('Ocorreu um erro ao processar o pagamento');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleCashAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9.,]/g, '');
+    setCashReceived(value);
+  };
+
+  const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9.,]/g, '');
+    setGeneralDiscount(value);
+  };
+
+  const parseAmount = (value: string): number => {
+    return parseFloat(value.replace(',', '.')) || 0;
   };
 
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Pagamento</DialogTitle>
-          <DialogDescription>
-            Selecione o método de pagamento
-          </DialogDescription>
-        </DialogHeader>
+  // Calcular o desconto geral
+  const calculateGeneralDiscount = (): number => {
+    const discountValue = parseAmount(generalDiscount);
+    
+    if (discountValue <= 0) return 0;
+    
+    if (discountType === 'percentage') {
+      // Calcular o valor com base na porcentagem (limitado a 100%)
+      const safePercentage = Math.min(discountValue, 100);
+      return (total * safePercentage) / 100;
+    } else {
+      // Valor direto (limitado ao total da venda)
+      return Math.min(discountValue, total);
+    }
+  };
 
-        <div className="grid gap-4">
-          <div className="flex justify-between items-center font-medium text-lg">
+  // Calcular o valor final com desconto geral
+  const generalDiscountAmount = calculateGeneralDiscount();
+  const finalTotal = total - generalDiscountAmount;
+
+  // Calcular troco para pagamento em dinheiro
+  const cashAmount = parseAmount(cashReceived);
+  const change = cashAmount - finalTotal > 0 ? cashAmount - finalTotal : 0;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Finalizar Pagamento</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Resumo dos valores */}
+        <div className="mb-6 space-y-2">
+          <div className="flex justify-between text-gray-600">
             <span>Total:</span>
             <span>{formatCurrency(total)}</span>
           </div>
 
-          {/* Seção de desconto geral */}
-          <div className="space-y-2 border p-3 rounded-md">
-            <h4 className="font-medium flex items-center">
+          {/* Campo de desconto geral */}
+          <div className="pt-2 pb-2 border p-3 rounded-md">
+            <div className="flex items-center mb-2">
               <PercentCircle className="h-4 w-4 mr-2" />
-              Desconto Geral
-            </h4>
+              <span className="font-medium">Desconto Geral</span>
+            </div>
             
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <div className="flex-1">
-                <Input
+                <input
                   type="text"
-                  placeholder={discountType === 'percentage' ? '0%' : 'R$ 0,00'}
                   value={generalDiscount}
-                  onChange={(e) => setGeneralDiscount(e.target.value)}
+                  onChange={handleDiscountChange}
+                  placeholder={discountType === 'percentage' ? '0%' : 'R$ 0,00'}
+                  className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none"
                 />
               </div>
               
-              <Select
-                value={discountType}
-                onValueChange={(value) => setDiscountType(value as 'value' | 'percentage')}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="value">Valor (R$)</SelectItem>
-                  <SelectItem value="percentage">Percentual (%)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setDiscountType('value')}
+                  className={`px-3 py-1 rounded ${
+                    discountType === 'value' 
+                      ? 'bg-blue-100 text-blue-700 font-medium' 
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  R$
+                </button>
+                <button
+                  onClick={() => setDiscountType('percentage')}
+                  className={`px-3 py-1 rounded ${
+                    discountType === 'percentage' 
+                      ? 'bg-blue-100 text-blue-700 font-medium' 
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  %
+                </button>
+              </div>
             </div>
-
-            {calculateGeneralDiscount() > 0 && (
-              <div className="text-sm font-medium text-green-600 flex justify-between">
+            
+            {generalDiscountAmount > 0 && (
+              <div className="text-sm font-medium text-green-600 flex justify-between mt-2">
                 <span>Desconto aplicado:</span>
-                <span>-{formatCurrency(calculateGeneralDiscount())}</span>
+                <span>-{formatCurrency(generalDiscountAmount)}</span>
               </div>
             )}
           </div>
 
-          {calculateGeneralDiscount() > 0 && (
-            <div className="flex justify-between items-center font-medium text-lg text-green-700">
+          {generalDiscountAmount > 0 && (
+            <div className="flex justify-between font-medium text-lg text-green-700">
               <span>Novo Total:</span>
               <span>{formatCurrency(finalTotal)}</span>
             </div>
           )}
+        </div>
 
-          <div className="space-y-2">
-            <Label>Método de Pagamento</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('cash')}
-                className="flex items-center justify-center"
-              >
-                <BanknoteIcon className="h-4 w-4 mr-2" />
-                Dinheiro
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'credit_card' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('credit_card')}
-                className="flex items-center justify-center"
-              >
-                <CreditCardIcon className="h-4 w-4 mr-2" />
-                Crédito
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'debit_card' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('debit_card')}
-                className="flex items-center justify-center"
-              >
-                <CreditCardIcon className="h-4 w-4 mr-2" />
-                Débito
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'pix' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('pix')}
-                className="flex items-center justify-center"
-              >
-                <QrCodeIcon className="h-4 w-4 mr-2" />
-                PIX
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
-                onClick={() => setPaymentMethod('transfer')}
-                className="flex items-center justify-center col-span-2"
-              >
-                <ArrowRightIcon className="h-4 w-4 mr-2" />
-                Transferência
-              </Button>
-            </div>
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Selecione a forma de pagamento</h3>
+          
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              onClick={() => setSelectedMethod('credit_card')}
+              className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
+                selectedMethod === 'credit_card' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
+              <CreditCard className={`h-6 w-6 ${selectedMethod === 'credit_card' ? 'text-blue-600' : 'text-gray-600'}`} />
+              <span className="mt-2 text-sm">Cartão de Crédito</span>
+            </button>
+            
+            <button
+              onClick={() => setSelectedMethod('debit_card')}
+              className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
+                selectedMethod === 'debit_card' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
+              <CreditCard className={`h-6 w-6 ${selectedMethod === 'debit_card' ? 'text-blue-600' : 'text-gray-600'}`} />
+              <span className="mt-2 text-sm">Cartão de Débito</span>
+            </button>
+            
+            <button
+              onClick={() => setSelectedMethod('cash')}
+              className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
+                selectedMethod === 'cash' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
+              <Banknote className={`h-6 w-6 ${selectedMethod === 'cash' ? 'text-blue-600' : 'text-gray-600'}`} />
+              <span className="mt-2 text-sm">Dinheiro</span>
+            </button>
+            
+            <button
+              onClick={() => setSelectedMethod('pix')}
+              className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
+                selectedMethod === 'pix' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
+              <QrCode className={`h-6 w-6 ${selectedMethod === 'pix' ? 'text-blue-600' : 'text-gray-600'}`} />
+              <span className="mt-2 text-sm">PIX</span>
+            </button>
           </div>
 
-          {paymentMethod === 'cash' && (
-            <div className="space-y-2">
-              <Label htmlFor="cashAmount">Valor em Dinheiro</Label>
-              <Input
-                id="cashAmount"
-                placeholder="R$ 0,00"
-                value={cashAmount}
-                onChange={(e) => setCashAmount(e.target.value)}
-              />
-              {cashAmount && parseFloat(cashAmount.replace(',', '.')) >= finalTotal && (
-                <div className="flex justify-between items-center font-medium">
-                  <span>Troco:</span>
-                  <span>{formatCurrency(change)}</span>
-                </div>
-              )}
+          {/* Campos específicos para pagamento em dinheiro */}
+          {selectedMethod === 'cash' && (
+            <div className="mt-4 space-y-3 p-3 bg-gray-50 rounded-lg">
+              <div>
+                <label htmlFor="cashAmount" className="block text-sm text-gray-700 mb-1">
+                  Valor recebido:
+                </label>
+                <input
+                  id="cashAmount"
+                  type="text"
+                  value={cashReceived}
+                  onChange={handleCashAmountChange}
+                  placeholder="0,00"
+                  className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Troco:</span>
+                <span className="font-medium">
+                  {cashAmount >= finalTotal ? formatCurrency(change) : '--'}
+                </span>
+              </div>
             </div>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirmPayment} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processando...
-              </>
-            ) : (
-              'Confirmar Pagamento'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <button
+          onClick={handleConfirmPayment}
+          disabled={loading || (selectedMethod === 'cash' && cashAmount < finalTotal)}
+          className={`w-full flex justify-center items-center gap-2 rounded-lg py-3 font-semibold ${
+            loading || (selectedMethod === 'cash' && cashAmount < finalTotal)
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-green-600 text-white hover:bg-green-700'
+          }`}
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Processando...</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-5 w-5" />
+              <span>Confirmar Pagamento</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 } 
