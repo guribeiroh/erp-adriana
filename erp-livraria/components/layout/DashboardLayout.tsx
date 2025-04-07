@@ -129,12 +129,6 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notificações */}
-            <button className="relative rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white" />
-            </button>
-
             {/* Perfil do usuário */}
             <div className="relative" ref={profileMenuRef}>
               <button 
