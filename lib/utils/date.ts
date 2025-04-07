@@ -147,9 +147,10 @@ export function toBrazilianDateString(dateString?: string | null): string {
 /**
  * Obtém a data atual no fuso horário de Brasília
  * @param format Formato de saída ('iso' | 'date-string' | 'locale' | 'date-object')
+ * @param withTime Se true, inclui o horário 15:00:00 UTC (equivalente a 12:00 em Brasília)
  * @returns Data atual no formato especificado
  */
-export function getCurrentBrazilianDate(format: 'iso' | 'date-string' | 'locale' | 'date-object' = 'date-string'): string | Date {
+export function getCurrentBrazilianDate(format: 'iso' | 'date-string' | 'locale' | 'date-object' = 'date-string', withTime: boolean = false): string | Date {
   // Criar a data atual
   const now = new Date();
   
@@ -178,15 +179,19 @@ export function getCurrentBrazilianDate(format: 'iso' | 'date-string' | 'locale'
         day: '2-digit'
       });
       
-      return formatter.format(now);
+      const formattedDate = formatter.format(now);
+      // Se withTime for true, adicionar 15:00:00 (que será 12:00 em Brasília)
+      // Usamos 15:00 UTC porque Brasília é UTC-3, então isso será meio-dia em Brasília
+      return withTime ? `${formattedDate} 15:00:00` : formattedDate;
     } catch (error) {
       console.error('Erro formatando data para Brasília:', error);
       
-      // Em último caso, retornar a data atual em UTC
+      // Fallback
       const year = now.getUTCFullYear();
       const month = String(now.getUTCMonth() + 1).padStart(2, '0');
       const day = String(now.getUTCDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      const dateStr = `${year}-${month}-${day}`;
+      return withTime ? `${dateStr} 15:00:00` : dateStr;
     }
   }
 } 

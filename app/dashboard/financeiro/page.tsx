@@ -277,9 +277,9 @@ function FinanceiroPage() {
       
       // Garantir ordenação por data mais recente, mesmo após carregar do backend
       const transacoesOrdenadas = [...result.transacoes].sort((a, b) => {
-        // Comparar por data primeiro
-        const dataA = new Date(`${a.data}T12:00:00-03:00`);
-        const dataB = new Date(`${b.data}T12:00:00-03:00`);
+        // Comparar por data primeiro, garantindo que o fuso horário seja considerado corretamente
+        const dataA = new Date(`${a.data}${a.data.includes('T') || a.data.includes(' ') ? '' : 'T15:00:00Z'}`);
+        const dataB = new Date(`${b.data}${b.data.includes('T') || b.data.includes(' ') ? '' : 'T15:00:00Z'}`);
         const dateComparison = dataB.getTime() - dataA.getTime();
         
         // Se as datas forem iguais, usar o ID como critério de desempate
@@ -300,6 +300,16 @@ function FinanceiroPage() {
       if (transacoesOrdenadas.length > 0) {
         console.log('Primeira transação (mais recente):', transacoesOrdenadas[0]);
         console.log('Última transação (mais antiga):', transacoesOrdenadas[transacoesOrdenadas.length - 1]);
+        
+        // Adicionar logs para depuração da formatação de data
+        const primeiraData = transacoesOrdenadas[0].data;
+        const dataFormatada = formatarData(primeiraData);
+        console.log(`Exemplo de formatação de data: 
+          - Original: ${primeiraData}
+          - Formatada para exibição: ${dataFormatada}
+          - Data com UTC 15:00: ${primeiraData}T15:00:00Z 
+          - Objeto Date: ${new Date(`${primeiraData}T15:00:00Z`)}
+        `);
       }
     } catch (error) {
       console.error("Erro ao carregar transações:", error);
@@ -408,7 +418,40 @@ function FinanceiroPage() {
   
   // Formatador de data
   const formatarData = (dataString: string) => {
-    return formatBrazilianDate(dataString);
+    try {
+      // Para evitar o problema do dia anterior na exibição,
+      // precisamos garantir que a data seja interpretada no fuso horário correto
+      
+      // Verificar se a data já contém informação de hora
+      const hasTime = dataString.includes('T') || dataString.includes(' ');
+      
+      if (!hasTime) {
+        // Se não tiver horário, adicionar 12:00:00 para garantir que fique no dia correto
+        // Noon in Brasilia timezone (15:00 UTC)
+        dataString = `${dataString}T15:00:00Z`;
+      }
+      
+      // Criar o objeto Date a partir da string formatada
+      const date = new Date(dataString);
+      
+      // Verificar se a data é válida
+      if (isNaN(date.getTime())) {
+        console.warn(`Data inválida: ${dataString}`);
+        return dataString; // Retorna a string original em caso de erro
+      }
+      
+      // Formatar a data para exibição no formato brasileiro usando Intl.DateTimeFormat
+      // que lida melhor com fuso horário
+      return new Intl.DateTimeFormat('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(date);
+    } catch (error) {
+      console.error(`Erro ao formatar data [${dataString}]:`, error);
+      return dataString; // Retorna a string original em caso de erro
+    }
   };
   
   // Formatador de valor monetário
@@ -440,11 +483,25 @@ function FinanceiroPage() {
     
     // Aplicar filtro de período
     if (periodoInicio) {
-      resultado = resultado.filter(t => t.data >= periodoInicio);
+      // Normalizamos as datas para comparação
+      resultado = resultado.filter(t => {
+        // Se a data já inclui time, usamos diretamente, caso contrário adicionamos
+        const dataNormalizada = t.data.includes('T') || t.data.includes(' ') 
+          ? t.data 
+          : `${t.data}T15:00:00Z`;
+        return dataNormalizada >= periodoInicio;
+      });
     }
     
     if (periodoFim) {
-      resultado = resultado.filter(t => t.data <= periodoFim);
+      // Normalizamos as datas para comparação
+      resultado = resultado.filter(t => {
+        // Se a data já inclui time, usamos diretamente, caso contrário adicionamos
+        const dataNormalizada = t.data.includes('T') || t.data.includes(' ') 
+          ? t.data 
+          : `${t.data}T15:00:00Z`;
+        return dataNormalizada <= `${periodoFim}T23:59:59Z`; // Final do dia
+      });
     }
     
     // Aplicar filtro de busca
@@ -462,15 +519,15 @@ function FinanceiroPage() {
       // Usar formatação que considere o fuso horário de Brasília
       resultado.sort((a, b) => {
         // Converter as datas para objetos Date considerando o fuso de Brasília
-        const dataA = new Date(`${a.data}T12:00:00-03:00`); // Meio-dia no fuso de Brasília
-        const dataB = new Date(`${b.data}T12:00:00-03:00`);
+        const dataA = new Date(`${a.data}${a.data.includes('T') || a.data.includes(' ') ? '' : 'T15:00:00Z'}`);
+        const dataB = new Date(`${b.data}${b.data.includes('T') || b.data.includes(' ') ? '' : 'T15:00:00Z'}`);
         return dataA.getTime() - dataB.getTime();
       });
     } else if (ordenacao === "data-desc") {
       resultado.sort((a, b) => {
         // Converter as datas para objetos Date considerando o fuso de Brasília
-        const dataA = new Date(`${a.data}T12:00:00-03:00`); // Meio-dia no fuso de Brasília
-        const dataB = new Date(`${b.data}T12:00:00-03:00`);
+        const dataA = new Date(`${a.data}${a.data.includes('T') || a.data.includes(' ') ? '' : 'T15:00:00Z'}`);
+        const dataB = new Date(`${b.data}${b.data.includes('T') || b.data.includes(' ') ? '' : 'T15:00:00Z'}`);
         return dataB.getTime() - dataA.getTime();
       });
     } else if (ordenacao === "valor-asc") {
