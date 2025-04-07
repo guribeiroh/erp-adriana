@@ -23,6 +23,7 @@ import {
   Store,
   CreditCard
 } from "lucide-react";
+import { createTransacao, FormaPagamento as TransacaoFormaPagamento } from "@/lib/services/financialService";
 
 // Tipos
 type FormaPagamento = "dinheiro" | "credito" | "debito" | "pix" | "boleto" | "transferencia";
@@ -195,22 +196,57 @@ export default function NovaDespesaPage() {
   };
   
   // Handler para submeter o formulário
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsSubmitting(true);
+      setErrors({});
       
-      // Simulação de envio para API
-      setTimeout(() => {
-        setIsSubmitting(false);
+      try {
+        console.log("Iniciando criação de nova despesa...");
+        
+        // Formatar o valor para número
+        const valorNumerico = parseFloat(valor.replace(/\./g, "").replace(",", "."));
+        
+        // Preparar dados da transação
+        const dadosTransacao = {
+          descricao,
+          valor: valorNumerico,
+          data,
+          dataVencimento,
+          dataPagamento: isPago ? dataPagamento : undefined,
+          tipo: "despesa" as const,
+          categoria,
+          status: isPago ? "confirmada" as const : "pendente" as const,
+          formaPagamento: isPago ? formaPagamento as TransacaoFormaPagamento : undefined,
+          observacoes,
+          vinculoId: fornecedorSelecionado?.id,
+          vinculoTipo: fornecedorSelecionado ? "compra" as const : undefined,
+        };
+        
+        console.log("Dados da transação a criar:", dadosTransacao);
+        
+        // Criar a transação no sistema
+        const resultado = await createTransacao(dadosTransacao);
+        
+        console.log("Despesa criada com sucesso:", resultado);
+        
+        // Exibir mensagem de sucesso
         setSuccess(true);
         
         // Redirecionar após sucesso
         setTimeout(() => {
           router.push("/dashboard/financeiro");
         }, 2000);
-      }, 1500);
+      } catch (error) {
+        console.error("Erro ao criar despesa:", error);
+        setErrors({ 
+          submit: "Ocorreu um erro ao registrar a despesa. Por favor, tente novamente." 
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
   
@@ -685,6 +721,16 @@ export default function NovaDespesaPage() {
               )}
             </button>
           </div>
+          
+          {/* Mensagem de erro global */}
+          {errors.submit && (
+            <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+                <p>{errors.submit}</p>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </DashboardLayout>

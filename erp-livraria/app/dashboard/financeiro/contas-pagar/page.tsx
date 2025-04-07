@@ -22,7 +22,7 @@ import {
   CreditCard,
   Tag
 } from "lucide-react";
-import { fetchTransacoes, Transacao, updateTransacao } from "@/lib/services/financialService";
+import { fetchTransacoes, Transacao, updateTransacao, TransacaoStatus } from "@/lib/services/financialService";
 import { formatBrazilianDate, getCurrentBrazilianDate } from '@/lib/utils/date';
 
 export default function ContasPagarPage() {
@@ -61,6 +61,7 @@ export default function ContasPagarPage() {
   const carregarContasPagar = async () => {
     setCarregando(true);
     setErro(null);
+    console.log("[carregarContasPagar] Iniciando busca de contas a pagar..."); // Log de início
     
     try {
       // Buscar apenas despesas pendentes
@@ -69,10 +70,11 @@ export default function ContasPagarPage() {
         status: "pendente"
       });
       
+      console.log("[carregarContasPagar] Busca concluída. Transações recebidas:", result.transacoes); // Log de sucesso
       setDespesas(result.transacoes);
       calcularResumo(result.transacoes);
     } catch (error) {
-      console.error("Erro ao carregar contas a pagar:", error);
+      console.error("[carregarContasPagar] Erro ao carregar contas a pagar:", error); // Log de erro existente
       setErro(error instanceof Error ? error.message : "Erro desconhecido");
     } finally {
       setCarregando(false);
@@ -206,21 +208,29 @@ export default function ContasPagarPage() {
   // Função para confirmar pagamento
   const confirmarPagamento = async (id: string) => {
     setAtualizandoPagamento(id);
+    console.log(`[confirmarPagamento] Iniciando atualização para ID: ${id}`); // Log de início
     
     try {
+      const updateData = {
+        status: "confirmada" as TransacaoStatus,
+        dataPagamento: new Date().toISOString().split('T')[0] // Usar formato YYYY-MM-DD
+      };
+      console.log(`[confirmarPagamento] Dados a serem enviados para updateTransacao:`, updateData); // Log dos dados
+      
       // Atualizar status para confirmada e adicionar data de pagamento
-      await updateTransacao(id, {
-        status: "confirmada",
-        dataPagamento: new Date().toISOString().split('T')[0]
-      });
+      await updateTransacao(id, updateData);
+      
+      console.log(`[confirmarPagamento] Atualização via updateTransacao bem-sucedida para ID: ${id}. Recarregando dados...`); // Log de sucesso da API
       
       // Recarregar dados
       await carregarContasPagar();
     } catch (error) {
-      console.error("Erro ao confirmar pagamento:", error);
-      alert("Erro ao confirmar pagamento. Tente novamente.");
+      // Capturar e logar erro específico da atualização
+      console.error(`[confirmarPagamento] Erro específico ao chamar updateTransacao para ID: ${id}`, error); 
+      alert("Erro ao confirmar pagamento. Verifique o console do navegador para mais detalhes."); // Alert mais informativo
     } finally {
       setAtualizandoPagamento(null);
+      console.log(`[confirmarPagamento] Finalizando processo para ID: ${id}`); // Log de fim
     }
   };
   
