@@ -193,19 +193,26 @@ export default function NovoClientePage() {
       newErrors.nome = "Nome é obrigatório";
     }
     
+    // Validação de Razão Social para Pessoa Jurídica
+    if (tipoCliente === "pessoaJuridica" && !formData.razaoSocial.trim()) {
+      newErrors.razaoSocial = "Razão Social é obrigatória";
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = "Email é obrigatório";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email inválido";
+    }
+    
     if (!formData.telefone.trim()) {
       newErrors.telefone = "Telefone é obrigatório";
     } else if (formData.telefone.replace(/\D/g, "").length < 10) {
       newErrors.telefone = "Telefone inválido";
     }
     
-    // Validação de formato de e-mail apenas se estiver preenchido
-    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email inválido";
-    }
-    
-    // Validação de CPF/CNPJ apenas se estiver preenchido
-    if (formData.cpfCnpj.trim()) {
+    if (!formData.cpfCnpj.trim()) {
+      newErrors.cpfCnpj = tipoCliente === "pessoaFisica" ? "CPF é obrigatório" : "CNPJ é obrigatório";
+    } else {
       const onlyNumbers = formData.cpfCnpj.replace(/\D/g, "");
       if (tipoCliente === "pessoaFisica" && onlyNumbers.length !== 11) {
         newErrors.cpfCnpj = "CPF inválido";
@@ -214,8 +221,21 @@ export default function NovoClientePage() {
       }
     }
     
-    // Validação de CEP apenas se estiver preenchido
-    if (formData.cep.trim() && formData.cep.replace(/\D/g, "").length !== 8) {
+    if (!formData.endereco.trim()) {
+      newErrors.endereco = "Endereço é obrigatório";
+    }
+    
+    if (!formData.cidade.trim()) {
+      newErrors.cidade = "Cidade é obrigatória";
+    }
+    
+    if (!formData.estado.trim()) {
+      newErrors.estado = "Estado é obrigatório";
+    }
+    
+    if (!formData.cep.trim()) {
+      newErrors.cep = "CEP é obrigatório";
+    } else if (formData.cep.replace(/\D/g, "").length !== 8) {
       newErrors.cep = "CEP inválido";
     }
     
@@ -369,19 +389,24 @@ export default function NovoClientePage() {
               {tipoCliente === "pessoaJuridica" && (
                 <div>
                   <label htmlFor="razaoSocial" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                    Razão Social
+                    Razão Social <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    id="razaoSocial"
-                    name="razaoSocial"
-                    value={formData.razaoSocial}
-                    onChange={handleChange}
-                    placeholder="Razão social da empresa"
-                    className={`w-full rounded-lg border py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
-                      errors.razaoSocial ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
-                    }`}
-                  />
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <Building2 className="h-4 w-4 text-neutral-400" />
+                    </div>
+                    <input
+                      type="text"
+                      id="razaoSocial"
+                      name="razaoSocial"
+                      value={formData.razaoSocial}
+                      onChange={handleChange}
+                      placeholder="Razão social da empresa"
+                      className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                        errors.razaoSocial ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
+                      }`}
+                    />
+                  </div>
                   {errors.razaoSocial && (
                     <p className="mt-1.5 text-sm text-red-600">{errors.razaoSocial}</p>
                   )}
@@ -391,7 +416,7 @@ export default function NovoClientePage() {
               {/* Email */}
               <div>
                 <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                  Email
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -429,7 +454,7 @@ export default function NovoClientePage() {
                     name="instagram"
                     value={formData.instagram}
                     onChange={handleChange}
-                    placeholder="@usuario"
+                    placeholder="usuario (sem @)"
                     className="w-full rounded-lg border border-neutral-300 bg-white py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                   />
                 </div>
@@ -445,7 +470,7 @@ export default function NovoClientePage() {
                     <Phone className="h-4 w-4 text-neutral-400" />
                   </div>
                   <input
-                    type="tel"
+                    type="text"
                     id="telefone"
                     name="telefone"
                     value={formData.telefone}
@@ -464,7 +489,7 @@ export default function NovoClientePage() {
               {/* CPF/CNPJ */}
               <div>
                 <label htmlFor="cpfCnpj" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                  {tipoCliente === "pessoaFisica" ? "CPF" : "CNPJ"}
+                  {tipoCliente === "pessoaFisica" ? "CPF" : "CNPJ"} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -513,7 +538,7 @@ export default function NovoClientePage() {
               {/* Endereço */}
               <div className="md:col-span-2">
                 <label htmlFor="endereco" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                  Endereço
+                  Endereço <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -525,7 +550,7 @@ export default function NovoClientePage() {
                     name="endereco"
                     value={formData.endereco}
                     onChange={handleChange}
-                    placeholder="Rua, número"
+                    placeholder="Rua, número, bairro"
                     className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
                       errors.endereco ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
                     }`}
@@ -537,7 +562,7 @@ export default function NovoClientePage() {
               </div>
               
               {/* Complemento */}
-              <div className="md:col-span-2">
+              <div>
                 <label htmlFor="complemento" className="mb-1.5 block text-sm font-medium text-neutral-900">
                   Complemento
                 </label>
@@ -547,15 +572,36 @@ export default function NovoClientePage() {
                   name="complemento"
                   value={formData.complemento}
                   onChange={handleChange}
-                  placeholder="Apartamento, sala, etc"
-                  className="w-full rounded-lg border border-neutral-300 bg-white py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  placeholder="Apartamento, bloco, etc."
+                  className="w-full rounded-lg border border-neutral-300 py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                 />
+              </div>
+              
+              {/* CEP */}
+              <div>
+                <label htmlFor="cep" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                  CEP <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="cep"
+                  name="cep"
+                  value={formData.cep}
+                  onChange={handleCepChange}
+                  placeholder="00000-000"
+                  className={`w-full rounded-lg border py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                    errors.cep ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
+                  }`}
+                />
+                {errors.cep && (
+                  <p className="mt-1.5 text-sm text-red-600">{errors.cep}</p>
+                )}
               </div>
               
               {/* Cidade */}
               <div>
                 <label htmlFor="cidade" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                  Cidade
+                  Cidade <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -576,7 +622,7 @@ export default function NovoClientePage() {
               {/* Estado */}
               <div>
                 <label htmlFor="estado" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                  Estado
+                  Estado <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="estado"
@@ -618,27 +664,6 @@ export default function NovoClientePage() {
                 </select>
                 {errors.estado && (
                   <p className="mt-1.5 text-sm text-red-600">{errors.estado}</p>
-                )}
-              </div>
-              
-              {/* CEP */}
-              <div>
-                <label htmlFor="cep" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                  CEP
-                </label>
-                <input
-                  type="text"
-                  id="cep"
-                  name="cep"
-                  value={formData.cep}
-                  onChange={handleCepChange}
-                  placeholder="00000-000"
-                  className={`w-full rounded-lg border py-2.5 px-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
-                    errors.cep ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
-                  }`}
-                />
-                {errors.cep && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.cep}</p>
                 )}
               </div>
             </div>

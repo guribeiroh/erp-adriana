@@ -214,19 +214,26 @@ export default function EditarClientePage({ params }: { params: { id: string } }
       newErrors.nome = 'Nome é obrigatório';
     }
     
+    // Validação de Razão Social para Pessoa Jurídica
+    if (tipoCliente === 'pessoaJuridica' && !formData.razaoSocial.trim()) {
+      newErrors.razaoSocial = 'Razão Social é obrigatória';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+    
     if (!formData.telefone.trim()) {
       newErrors.telefone = 'Telefone é obrigatório';
     } else if (formData.telefone.replace(/\D/g, '').length < 10) {
       newErrors.telefone = 'Telefone inválido';
     }
     
-    // Validação de formato de e-mail apenas se estiver preenchido
-    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email inválido';
-    }
-    
-    // Validação de CPF/CNPJ apenas se estiver preenchido
-    if (formData.cpfCnpj.trim()) {
+    if (!formData.cpfCnpj.trim()) {
+      newErrors.cpfCnpj = tipoCliente === 'pessoaFisica' ? 'CPF é obrigatório' : 'CNPJ é obrigatório';
+    } else {
       const onlyNumbers = formData.cpfCnpj.replace(/\D/g, '');
       if (tipoCliente === 'pessoaFisica' && onlyNumbers.length !== 11) {
         newErrors.cpfCnpj = 'CPF inválido';
@@ -235,8 +242,21 @@ export default function EditarClientePage({ params }: { params: { id: string } }
       }
     }
     
-    // Validação de CEP apenas se estiver preenchido
-    if (formData.cep.trim() && formData.cep.replace(/\D/g, '').length !== 8) {
+    if (!formData.endereco.trim()) {
+      newErrors.endereco = 'Endereço é obrigatório';
+    }
+    
+    if (!formData.cidade.trim()) {
+      newErrors.cidade = 'Cidade é obrigatória';
+    }
+    
+    if (!formData.estado.trim()) {
+      newErrors.estado = 'Estado é obrigatório';
+    }
+    
+    if (!formData.cep.trim()) {
+      newErrors.cep = 'CEP é obrigatório';
+    } else if (formData.cep.replace(/\D/g, '').length !== 8) {
       newErrors.cep = 'CEP inválido';
     }
     
@@ -433,7 +453,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {tipoCliente === 'pessoaJuridica' && (
                     <div>
                       <label htmlFor="razaoSocial" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                        Razão Social
+                        Razão Social <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -460,7 +480,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {/* Email */}
                   <div>
                     <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                      Email
+                      Email <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -533,7 +553,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {/* CPF/CNPJ */}
                   <div>
                     <label htmlFor="cpfCnpj" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                      {tipoCliente === 'pessoaFisica' ? 'CPF' : 'CNPJ'}
+                      {tipoCliente === 'pessoaFisica' ? 'CPF' : 'CNPJ'} <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -582,7 +602,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {/* Endereço */}
                   <div className="md:col-span-2">
                     <label htmlFor="endereco" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                      Endereço
+                      Endereço <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -624,7 +644,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {/* CEP */}
                   <div>
                     <label htmlFor="cep" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                      CEP
+                      CEP <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -645,7 +665,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {/* Cidade */}
                   <div>
                     <label htmlFor="cidade" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                      Cidade
+                      Cidade <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -666,7 +686,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                   {/* Estado */}
                   <div>
                     <label htmlFor="estado" className="mb-1.5 block text-sm font-medium text-neutral-900">
-                      Estado
+                      Estado <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="estado"
