@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "../../../../components/layout/DashboardLayout";
-import { supabase } from "@/lib/supabase/client";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -24,7 +23,6 @@ import {
   Store,
   CreditCard
 } from "lucide-react";
-import { createTransacao, Transacao } from "@/lib/services/financialService";
 
 // Tipos
 type FormaPagamento = "dinheiro" | "credito" | "debito" | "pix" | "boleto" | "transferencia";
@@ -80,54 +78,6 @@ export default function NovaDespesaPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // Estado para verificar status do Supabase
-  const [uploadStatus, setUploadStatus] = useState({
-    verificando: false,
-    mensagem: ''
-  });
-  
-  // Verificar bucket de armazenamento de comprovantes
-  const verificarBucketComprovantes = async () => {
-    if (!supabase) return;
-    
-    try {
-      // Verificar se o bucket 'financeiro' existe
-      const { data: buckets, error } = await supabase.storage.listBuckets();
-      
-      if (error) {
-        console.error('Erro ao verificar buckets:', error);
-        return;
-      }
-      
-      const financeiroExists = buckets.some(bucket => bucket.name === 'financeiro');
-      
-      // Se o bucket não existir, criar
-      if (!financeiroExists) {
-        console.log('Bucket "financeiro" não existe. Criando...');
-        const { data, error: createError } = await supabase.storage.createBucket('financeiro', {
-          public: true, // Bucket público para que os comprovantes sejam acessíveis
-          fileSizeLimit: 5 * 1024 * 1024, // Limite de 5MB por arquivo
-        });
-        
-        if (createError) {
-          console.error('Erro ao criar bucket:', createError);
-        } else {
-          console.log('Bucket "financeiro" criado com sucesso.');
-        }
-      } else {
-        console.log('Bucket "financeiro" já existe.');
-      }
-    } catch (error) {
-      console.error('Erro ao verificar/criar bucket:', error);
-    }
-  };
-  
-  // Inicializar componente
-  useEffect(() => {
-    // Verificar bucket assim que o componente for montado
-    verificarBucketComprovantes();
-  }, []);
   
   // Handler para formatar valor monetário
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,278 +189,28 @@ export default function NovaDespesaPage() {
     if (isDespesaRecorrente && dataFim && new Date(dataFim) <= new Date(data)) {
       newErrors.dataFim = "A data de término deve ser posterior à data inicial";
     }
-
-    // Validação adicional para periodicidade
-    if (isDespesaRecorrente && periodicidade && dataFim) {
-      const dataInicial = new Date(data);
-      const dataFinal = new Date(dataFim);
-      
-      // Calcular duração mínima baseada na periodicidade
-      let duracaoMinimaMeses = 1;
-      switch (periodicidade) {
-        case 'trimestral':
-          duracaoMinimaMeses = 3;
-          break;
-        case 'semestral':
-          duracaoMinimaMeses = 6;
-          break;
-        case 'anual':
-          duracaoMinimaMeses = 12;
-          break;
-      }
-      
-      // Calcular diferença em meses
-      const diffMeses = (dataFinal.getFullYear() - dataInicial.getFullYear()) * 12 + 
-                        (dataFinal.getMonth() - dataInicial.getMonth());
-      
-      if (diffMeses < duracaoMinimaMeses) {
-        newErrors.dataFim = `Para periodicidade ${periodicidade}, a data de término deve ser pelo menos ${duracaoMinimaMeses} ${duracaoMinimaMeses === 1 ? 'mês' : 'meses'} após a data inicial`;
-      }
-    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   
-  // Função para fazer upload do comprovante
-  const uploadComprovante = async (arquivo: File): Promise<string | null> => {
-    if (!supabase) {
-      console.error("Cliente Supabase não disponível");
-      return null;
-    }
-    
-    try {
-      setUploadStatus({
-        verificando: true,
-        mensagem: 'Fazendo upload do comprovante...'
-      });
-      
-      // Gerar nome de arquivo único baseado na data/hora
-      const fileExt = arquivo.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `comprovantes/${fileName}`;
-      
-      // Tentar fazer upload direto para o storage
-      const { data, error } = await supabase.storage
-        .from('financeiro')
-        .upload(filePath, arquivo, {
-          cacheControl: '3600',
-          upsert: true
-        });
-      
-      if (error) {
-        console.error('Erro ao fazer upload do comprovante:', error);
-        
-        // Se falhar por questões de política de segurança, tentar abordagem alternativa
-        if (error.message.includes('violates row-level security policy') || 
-            error.message.includes('not authorized')) {
-          
-          // Opção alternativa: converter para Base64
-          const reader = new FileReader();
-          
-          // Converter o arquivo para Base64
-          const getBase64 = () => {
-            return new Promise<string>((resolve, reject) => {
-              reader.onloadend = () => {
-                const base64String = typeof reader.result === 'string' ? reader.result : '';
-                resolve(base64String);
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(arquivo);
-            });
-          };
-          
-          // Obter string base64
-          const base64String = await getBase64();
-          setUploadStatus({
-            verificando: false,
-            mensagem: 'Comprovante processado com sucesso'
-          });
-          return base64String;
-        }
-        
-        setUploadStatus({
-          verificando: false,
-          mensagem: `Erro no upload: ${error.message}`
-        });
-        return null;
-      }
-      
-      // Se o upload foi bem-sucedido, obter a URL pública
-      const { data: urlData } = supabase.storage
-        .from('financeiro')
-        .getPublicUrl(filePath);
-        
-      setUploadStatus({
-        verificando: false,
-        mensagem: 'Comprovante enviado com sucesso'
-      });
-      
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Erro ao processar comprovante:', error);
-      setUploadStatus({
-        verificando: false,
-        mensagem: 'Erro ao processar o comprovante'
-      });
-      return null;
-    }
-  };
-  
-  // Função para criar despesas recorrentes
-  const criarDespesasRecorrentes = async (
-    despesaBase: Omit<Transacao, 'id'>,
-    periodicidade: Periodicidade,
-    dataInicio: string,
-    dataFim: string
-  ) => {
-    // Calcular intervalo baseado na periodicidade
-    const getIntervaloMeses = () => {
-      switch (periodicidade) {
-        case 'mensal': return 1;
-        case 'trimestral': return 3;
-        case 'semestral': return 6;
-        case 'anual': return 12;
-        default: return 1;
-      }
-    };
-    
-    const intervaloMeses = getIntervaloMeses();
-    
-    // Converter strings para objetos Date
-    const dataInicioObj = new Date(dataInicio);
-    const dataFimObj = new Date(dataFim);
-    
-    console.log(`Criando despesas recorrentes com intervalo de ${intervaloMeses} meses, de ${dataInicio} até ${dataFim}`);
-    
-    // Criar array para armazenar todas as promessas de criação de despesas
-    const promessasDespesas = [];
-    
-    // Criar a primeira despesa (já será criada pelo código principal)
-    let dataAtual = new Date(dataInicioObj);
-    
-    // Avançar para a próxima data
-    dataAtual.setMonth(dataAtual.getMonth() + intervaloMeses);
-    
-    // Continuar criando despesas enquanto a data atual for menor ou igual à data final
-    while (dataAtual <= dataFimObj) {
-      // Formatar a data para YYYY-MM-DD
-      const dataFormatada = dataAtual.toISOString().split('T')[0];
-      
-      // Calcular nova data de vencimento baseado na diferença entre data inicial e vencimento
-      let dataVencimentoNova = undefined;
-      if (despesaBase.dataVencimento) {
-        const dataInicialObj = new Date(dataInicio);
-        const dataVencimentoObj = new Date(despesaBase.dataVencimento);
-        
-        // Calcular diferença em dias
-        const diferencaDias = Math.floor(
-          (dataVencimentoObj.getTime() - dataInicialObj.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        
-        // Aplicar mesma diferença para a nova data
-        const novaDataVencimento = new Date(dataAtual);
-        novaDataVencimento.setDate(novaDataVencimento.getDate() + diferencaDias);
-        dataVencimentoNova = novaDataVencimento.toISOString().split('T')[0];
-      }
-      
-      // Criar cópia da despesa base com nova data
-      const despesaRecorrente = {
-        ...despesaBase,
-        data: dataFormatada,
-        dataVencimento: dataVencimentoNova || dataFormatada,
-        observacoes: (despesaBase.observacoes || '') + ` (Parcela recorrente - ${periodicidade})`
-      };
-      
-      console.log(`Criando parcela com data ${dataFormatada}`);
-      
-      // Adicionar promessa para criar despesa
-      promessasDespesas.push(createTransacao(despesaRecorrente));
-      
-      // Avançar para a próxima data
-      dataAtual.setMonth(dataAtual.getMonth() + intervaloMeses);
-    }
-    
-    // Esperar todas as despesas serem criadas
-    if (promessasDespesas.length > 0) {
-      try {
-        const despesasCriadas = await Promise.all(promessasDespesas);
-        console.log(`${despesasCriadas.length} parcelas recorrentes criadas com sucesso`);
-        return despesasCriadas;
-      } catch (error) {
-        console.error('Erro ao criar despesas recorrentes:', error);
-        throw error;
-      }
-    }
-    
-    return [];
-  };
-  
   // Handler para submeter o formulário
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
       setIsSubmitting(true);
       
-      try {
-        // Preparar objeto de transação
-        const valorNumerico = parseFloat(valor.replace(/\./g, "").replace(",", "."));
-        
-        // Upload do comprovante (se existir)
-        let urlComprovante: string | undefined = undefined;
-        if (isPago && comprovante) {
-          const url = await uploadComprovante(comprovante);
-          if (url) {
-            urlComprovante = url;
-          }
-        }
-        
-        const novaDespesa = {
-          descricao,
-          valor: valorNumerico,
-          data,
-          dataVencimento,
-          dataPagamento: isPago ? dataPagamento : undefined,
-          tipo: "despesa" as const,
-          categoria,
-          status: isPago ? "confirmada" as const : "pendente" as const,
-          formaPagamento: isPago ? formaPagamento : undefined,
-          observacoes: observacoes || undefined,
-          vinculoId: fornecedorSelecionado?.id,
-          vinculoTipo: fornecedorSelecionado ? "compra" as const : undefined,
-          comprovante: urlComprovante
-        };
-        
-        // Criar a transação
-        const transacaoCriada = await createTransacao(novaDespesa);
-        
-        console.log("Despesa registrada com sucesso:", transacaoCriada);
-        
-        // Se for despesa recorrente, criar as parcelas futuras
-        if (isDespesaRecorrente && dataFim) {
-          try {
-            await criarDespesasRecorrentes(novaDespesa, periodicidade, data, dataFim);
-          } catch (erroRecorrencia) {
-            console.error("Erro ao criar despesas recorrentes:", erroRecorrencia);
-            // Continuar mesmo com erro nas parcelas recorrentes
-          }
-        }
-        
+      // Simulação de envio para API
+      setTimeout(() => {
+        setIsSubmitting(false);
         setSuccess(true);
         
         // Redirecionar após sucesso
         setTimeout(() => {
           router.push("/dashboard/financeiro");
         }, 2000);
-      } catch (error) {
-        console.error("Erro ao registrar despesa:", error);
-        setErrors({
-          ...errors,
-          form: "Erro ao registrar despesa. Tente novamente."
-        });
-        setIsSubmitting(false);
-      }
+      }, 1500);
     }
   };
   
@@ -931,12 +631,12 @@ export default function NovaDespesaPage() {
                     />
                     <label
                       htmlFor="comprovante"
-                      className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 ${uploadStatus.verificando ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100"
                     >
                       <FileText className="h-5 w-5 text-neutral-500" />
                       {comprovante ? comprovante.name : "Anexar comprovante (PDF, JPG ou PNG)"}
                     </label>
-                    {comprovante && !uploadStatus.verificando && (
+                    {comprovante && (
                       <button
                         type="button"
                         onClick={() => setComprovante(null)}
@@ -945,19 +645,10 @@ export default function NovaDespesaPage() {
                         Remover
                       </button>
                     )}
-                    {uploadStatus.verificando && (
-                      <div className="flex items-center space-x-2 text-sm text-primary-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Processando...</span>
-                      </div>
-                    )}
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
                     Anexe um comprovante de pagamento (tamanho máximo: 5MB)
                   </p>
-                  {uploadStatus.mensagem && !uploadStatus.verificando && (
-                    <p className="mt-1 text-xs text-primary-600">{uploadStatus.mensagem}</p>
-                  )}
                 </div>
               )}
             </div>
@@ -965,14 +656,6 @@ export default function NovaDespesaPage() {
           
           {/* Botões de ação */}
           <div className="flex justify-end gap-3">
-            {errors.form && (
-              <div className="mr-auto rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.form}
-                </div>
-              </div>
-            )}
             <Link
               href="/dashboard/financeiro"
               className="rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 shadow-sm hover:bg-neutral-50"
@@ -987,17 +670,17 @@ export default function NovaDespesaPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {isDespesaRecorrente ? 'Criando parcelas...' : 'Processando...'}
+                  Processando...
                 </>
               ) : success ? (
                 <>
                   <Save className="h-4 w-4" />
-                  {isDespesaRecorrente ? 'Parcelas registradas!' : 'Despesa registrada!'}
+                  Despesa registrada!
                 </>
               ) : (
                 <>
                   <TrendingDown className="h-4 w-4" />
-                  Registrar Despesa {isDespesaRecorrente ? 'Recorrente' : ''}
+                  Registrar Despesa
                 </>
               )}
             </button>

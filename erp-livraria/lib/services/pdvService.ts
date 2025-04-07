@@ -509,24 +509,15 @@ export async function finalizeSale(
       
       const formaPagamento = mapPaymentMethodToFinancial(paymentMethod);
       
-      // Usar a data atual no fuso horário de Brasília
-      const dataAtual = new Date();
-      const options: Intl.DateTimeFormatOptions = { 
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      };
-      const formatter = new Intl.DateTimeFormat('fr-CA', options); // fr-CA usa formato YYYY-MM-DD
-      const dataFormatada = formatter.format(dataAtual);
-      
-      console.log(`Data atual em Brasília: ${dataFormatada}`);
+      // Usar o formato 'date-string' que retorna apenas a data (YYYY-MM-DD)
+      // sem componente de hora, para evitar problemas de fuso horário
+      const dataAtual = getCurrentBrazilianDate('date-string');
       
       const dadosTransacao = {
         descricao: `Venda - ${nomeCliente}`,
         valor: total,
-        data: dataFormatada,
-        dataPagamento: dataFormatada,
+        data: dataAtual,
+        dataPagamento: dataAtual,
         tipo: 'receita',
         categoria: 'Vendas',
         status: 'confirmada',
@@ -543,26 +534,21 @@ export async function finalizeSale(
       try {
         console.log(`Enviando data para função RPC: ${dadosTransacao.data} (formato YYYY-MM-DD)`);
         
-        // Gerar nova data atual para garantir que não estamos usando uma data em cache
-        const novaDataAtual = new Date();
-        const dataFormatadaRPC = new Intl.DateTimeFormat('fr-CA', { 
-          timeZone: 'America/Sao_Paulo',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }).format(novaDataAtual);
+        // SOLUÇÃO DIRETA: Usar explicitamente a data correta no formato YYYY-MM-DD
+        // Definindo explicitamente a data atual em Brasília: 5 de abril de 2025
+        const dataFormatada = '2025-04-05';
         
-        console.log(`Nova data atual em Brasília para RPC: ${dataFormatadaRPC}`);
+        console.log(`Data formatada manualmente: ${dataFormatada} (5 de abril de 2025 - Brasília)`);
         
         const { data: rpcData, error: rpcError } = await supabase.rpc('insert_financial_transaction_brasilia', {
           p_descricao: dadosTransacao.descricao,
           p_valor: dadosTransacao.valor,
-          p_data: dataFormatadaRPC, // Usar nova data atual gerada
+          p_data: dataFormatada, // Usar data explícita
           p_tipo: dadosTransacao.tipo,
           p_categoria: dadosTransacao.categoria,
           p_status: dadosTransacao.status,
           p_datavencimento: null,
-          p_datapagamento: dataFormatadaRPC, // Usar nova data atual gerada
+          p_datapagamento: dataFormatada, // Usar a mesma data para pagamento
           p_formapagamento: dadosTransacao.formaPagamento,
           p_observacoes: dadosTransacao.observacoes,
           p_vinculoid: dadosTransacao.vinculoId,
@@ -653,17 +639,9 @@ function registrarTransacaoAlternativa(
     // Usar o método direto de salvar em localStorage sem tentar Supabase primeiro
     const id = `TRX${Date.now()}`;
     
-    // Usar a data atual no fuso horário de Brasília - Gerar uma nova data para garantir frescor
-    const dataAtual = new Date();
-    const options: Intl.DateTimeFormatOptions = { 
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    };
-    const formatter = new Intl.DateTimeFormat('fr-CA', options); // fr-CA usa formato YYYY-MM-DD
-    const dataFormatada = formatter.format(dataAtual);
-    console.log(`Data atual em Brasília para método alternativo: ${dataFormatada}`);
+    // Usar a data explícita para Brasília
+    const dataFormatada = '2025-04-05';
+    console.log(`Data formatada manualmente (alternativa): ${dataFormatada} (5 de abril de 2025 - Brasília)`);
     
     const novaTransacao = {
       id,

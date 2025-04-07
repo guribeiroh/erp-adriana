@@ -7,7 +7,7 @@ Este é um sistema ERP completo para gerenciamento de livrarias, desenvolvido co
 - **Gerenciamento de Vendas**: Registro de transações, emissão de notas, histórico de vendas
 - **Gerenciamento de Clientes**: Cadastro, histórico de compras, preferências, sistema de fidelidade
 - **Gerenciamento de Estoque**: Controle de livros, alertas de estoque baixo, pedidos de reposição
-- **Gerenciamento de Contas**: Contas a pagar e receber, fluxo de caixa
+- **Gerenciamento de Contas**: Contas a pagar e receber, fluxo de caixa, relatórios financeiros
 - **PDV (Ponto de Venda)**: Interface rápida para vendas no balcão
 
 ## Estrutura do Projeto
@@ -44,7 +44,8 @@ O projeto possui documentação detalhada para facilitar o entendimento e manute
    - Estoque 🔄
    - Contas 🔄
    - PDV 🔄
-6. Implantação e testes finais 🔄
+6. Relatórios e análises 🔄
+7. Implantação e testes finais 🔄
 
 ## Como Executar
 

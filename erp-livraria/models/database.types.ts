@@ -68,7 +68,6 @@ export interface Sale {
   payment_status: 'paid' | 'pending' | 'canceled';
   notes: string;
   created_at: string;
-  updated_at?: string;
 }
 
 export interface SaleItem {

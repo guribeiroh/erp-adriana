@@ -66,8 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           forceRealData();
           console.log('Evento de login detectado, forçando uso de dados reais');
           
-          // Não redirecionamos aqui mais, apenas quando a função signIn() é chamada explicitamente
-          // O redirecionamento automático estava causando problemas ao mudar de aba
+          // Redirecionar apenas no evento SIGNED_IN
+          router.push('/dashboard');
         } 
         // Removemos o redirecionamento automático no SIGNED_OUT
         // O redirecionamento será feito pela página de logout

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "../../../../components/layout/DashboardLayout";
-import { useAuth } from '@/lib/context/AuthContext';
 import { 
   ArrowLeft, 
   Package, 
@@ -111,7 +110,6 @@ const verificarAutenticacao = async () => {
 export default function DetalheProdutoPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
   const produtoIdRef = useRef<string>('');
   const [produto, setProduto] = useState<Produto | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -417,78 +415,17 @@ export default function DetalheProdutoPage() {
           throw new Error("Cliente Supabase não disponível");
         }
         
-        // Verificar se o produto tem vendas associadas
-        const { data: vendasAssociadas, error: erroConsulta } = await supabase
-          .from('sale_items')
-          .select('id')
-          .eq('book_id', produto.id)
-          .limit(1);
-        
-        if (erroConsulta) {
-          console.error("Erro ao verificar vendas associadas:", erroConsulta);
-        }
-        
-        // Se o produto tem vendas associadas
-        if (vendasAssociadas && vendasAssociadas.length > 0) {
-          const opcaoInativar = window.confirm(
-            `Este livro não pode ser excluído porque já foi vendido e está registrado em vendas.\n\n` +
-            `Deseja inativar o produto zerando seu estoque? Isso manterá o histórico de vendas intacto.`
-          );
-          
-          if (opcaoInativar) {
-            // Inativar o produto zerando seu estoque e deixando abaixo do mínimo
-            const { error: erroInativar } = await supabase
-              .from('books')
-              .update({ 
-                quantity: 0, 
-                minimum_stock: 9999 // Valor alto para indicar que não deve ser reabastecido
-              })
-              .eq('id', produto.id);
-            
-            if (erroInativar) {
-              throw new Error(`Erro ao inativar produto: ${erroInativar.message}`);
-            }
-            
-            // Registrar a movimentação no histórico de estoque, se a tabela existir
-            try {
-              await supabase.from('stock_movements').insert({
-                book_id: produto.id,
-                type: 'saida',
-                quantity: produto.estoque || 0,
-                reason: 'Inativação de produto',
-                notes: 'Produto inativado por ter vendas associadas',
-                responsible: user?.email || 'Sistema'
-              });
-            } catch (err) {
-              console.error("Erro ao registrar movimentação de estoque:", err);
-              // Não vamos interromper o fluxo se esse registro falhar
-            }
-            
-            alert("Produto inativado com sucesso! O estoque foi zerado.");
-            // Recarregar os dados para mostrar o produto atualizado
-            recarregarDados();
-            return;
-          }
-          
-          return;
-        }
-        
-        // Se não tem vendas associadas, prosseguir com a exclusão
         const { error } = await supabase
           .from('books')
           .delete()
           .eq('id', produto.id);
         
         if (error) {
-          // Se ainda assim ocorrer erro de violação de chave estrangeira
-          if (error.message && error.message.includes("violates foreign key constraint")) {
-            throw new Error("Este produto não pode ser excluído porque está sendo referenciado em outras partes do sistema.");
-          }
           throw new Error(`Erro ao excluir produto: ${error.message}`);
         }
         
-        alert("Produto excluído com sucesso!");
-        router.push("/dashboard/produtos");
+      alert("Produto excluído com sucesso!");
+      router.push("/dashboard/produtos");
       } catch (error) {
         console.error("Erro ao excluir produto:", error);
         alert(`Erro ao excluir produto: ${error instanceof Error ? error.message : "Erro desconhecido"}`);

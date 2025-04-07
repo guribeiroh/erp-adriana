@@ -19,11 +19,7 @@ import {
   FileText,
   Save,
   Loader2,
-  AlertCircle,
-  PercentCircle,
-  DollarSign,
-  Percent,
-  X
+  AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { finalizeSale, fetchAvailableBooks, fetchCustomers } from "@/lib/services/pdvService";
@@ -228,13 +224,7 @@ function NovaVendaContent() {
   
   // Calcular totais
   const subtotal = itensVenda.reduce((acc, item) => acc + item.subtotal, 0);
-  const totalDesconto = itensVenda.reduce((acc, item) => acc + item.discount, 0);
   const totalItens = itensVenda.reduce((acc, item) => acc + item.quantidade, 0);
-  const total = subtotal - totalDesconto;
-  
-  const [descontoGeral, setDescontoGeral] = useState<string>('');
-  const [tipoDescontoGeral, setTipoDescontoGeral] = useState<'value' | 'percentage'>('value');
-  const [mostrarDescontoGeral, setMostrarDescontoGeral] = useState(false);
   
   // Verificar autenticação ao carregar a página
   useEffect(() => {
@@ -400,99 +390,6 @@ function NovaVendaContent() {
   const handleValorRecebidoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value.replace(/[^\d,]/g, ""); // Manter apenas dígitos e vírgula
     setValorRecebido(valor);
-  };
-  
-  // Handler para atualizar desconto de um item
-  const handleAtualizarDesconto = (produtoId: number, novoDesconto: number) => {
-    setItensVenda(itensAtuais => 
-      itensAtuais.map(item => {
-        if (item.produto.id === produtoId) {
-          // Garantir que o desconto não exceda o valor total do item
-          const descontoMaximo = item.precoUnitario * item.quantidade;
-          const descontoSeguro = Math.min(novoDesconto, descontoMaximo);
-          
-          return {
-            ...item,
-            discount: descontoSeguro,
-            subtotal: (item.precoUnitario * item.quantidade) - descontoSeguro
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  // Calcular o desconto geral
-  const calcularDescontoGeral = (): number => {
-    const valorDesconto = parseFloat(descontoGeral.replace(',', '.')) || 0;
-    
-    if (valorDesconto <= 0) return 0;
-    
-    if (tipoDescontoGeral === 'percentage') {
-      // Calcular o valor com base na porcentagem (limitado a 100%)
-      const porcentagemSegura = Math.min(valorDesconto, 100);
-      return (subtotal * porcentagemSegura) / 100;
-    } else {
-      // Valor direto (limitado ao total da venda)
-      return Math.min(valorDesconto, subtotal);
-    }
-  };
-  
-  // Aplicar desconto geral aos itens
-  const aplicarDescontoGeral = () => {
-    const valorDescontoGeral = calcularDescontoGeral();
-    
-    if (valorDescontoGeral <= 0 || itensVenda.length === 0) return;
-    
-    // Se houver apenas um item, aplicar todo o desconto a ele
-    if (itensVenda.length === 1) {
-      const item = itensVenda[0];
-      handleAtualizarDesconto(item.produto.id, valorDescontoGeral);
-      setDescontoGeral('');
-      setMostrarDescontoGeral(false);
-      return;
-    }
-    
-    // Distribuir o desconto proporcionalmente entre os itens
-    const valorTotalItens = itensVenda.reduce((sum, item) => 
-      sum + (item.precoUnitario * item.quantidade), 0);
-    
-    let descontoRestante = valorDescontoGeral;
-    
-    // Copiar os itens para atualização em massa
-    const novosItens = [...itensVenda];
-    
-    // Aplicar aos itens, exceto o último
-    for (let i = 0; i < novosItens.length - 1; i++) {
-      const item = novosItens[i];
-      const valorItem = item.precoUnitario * item.quantidade;
-      const parteDesconto = (valorItem / valorTotalItens) * valorDescontoGeral;
-      const descontoArredondado = Math.floor(parteDesconto * 100) / 100; // Arredondar para 2 casas
-      
-      novosItens[i] = {
-        ...item,
-        discount: descontoArredondado,
-        subtotal: valorItem - descontoArredondado
-      };
-      
-      descontoRestante -= descontoArredondado;
-    }
-    
-    // Aplicar o restante ao último item
-    const ultimoItem = novosItens[novosItens.length - 1];
-    const valorUltimoItem = ultimoItem.precoUnitario * ultimoItem.quantidade;
-    const novoDescontoUltimoItem = Math.min(descontoRestante, valorUltimoItem);
-    
-    novosItens[novosItens.length - 1] = {
-      ...ultimoItem,
-      discount: novoDescontoUltimoItem,
-      subtotal: valorUltimoItem - novoDescontoUltimoItem
-    };
-    
-    // Atualizar o estado com todos os novos itens
-    setItensVenda(novosItens);
-    setDescontoGeral('');
-    setMostrarDescontoGeral(false);
   };
   
   // Validação do formulário
@@ -811,34 +708,9 @@ function NovaVendaContent() {
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-center text-sm text-neutral-900">
                             {formatarValor(item.precoUnitario)}
-                            
-                            {/* Desconto por item */}
-                            <div className="mt-1 flex flex-col items-center">
-                              <button
-                                type="button"
-                                className="text-xs text-emerald-600 hover:text-emerald-700"
-                                onClick={() => {
-                                  // Abrir um modal ou popover para editar o desconto
-                                  const valor = prompt(`Digite o valor do desconto para ${item.produto.title}:`, item.discount.toString());
-                                  if (valor !== null) {
-                                    const desconto = parseFloat(valor.replace(',', '.')) || 0;
-                                    handleAtualizarDesconto(item.produto.id, desconto);
-                                  }
-                                }}
-                              >
-                                {item.discount > 0 
-                                  ? `Desconto: -${formatarValor(item.discount)}` 
-                                  : "Adicionar desconto"}
-                              </button>
-                            </div>
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-neutral-900">
                             {formatarValor(item.subtotal)}
-                            {item.discount > 0 && (
-                              <div className="text-xs text-gray-500 line-through">
-                                {formatarValor(item.precoUnitario * item.quantidade)}
-                              </div>
-                            )}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
                             <button
@@ -857,15 +729,8 @@ function NovaVendaContent() {
                         <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-neutral-900">
                           Total: {totalItens} {totalItens === 1 ? 'item' : 'itens'}
                         </td>
-                        <td colSpan={2} className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                          {totalDesconto > 0 && (
-                            <div className="font-medium text-red-600">
-                              Descontos: -{formatarValor(totalDesconto)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-neutral-900">
-                          Total da venda: {formatarValor(total)}
+                        <td colSpan={3} className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-neutral-900">
+                          Total da venda: {formatarValor(subtotal)}
                         </td>
                         <td></td>
                       </tr>
@@ -1044,13 +909,6 @@ function NovaVendaContent() {
                       <span className="font-medium text-neutral-900">{formatarValor(subtotal)}</span>
                     </div>
                     
-                    {totalDesconto > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-neutral-600">Descontos:</span>
-                        <span className="font-medium text-red-600">-{formatarValor(totalDesconto)}</span>
-                      </div>
-                    )}
-                    
                     <div className="flex items-center justify-between">
                       <span className="text-neutral-600">Itens:</span>
                       <span className="font-medium text-neutral-900">{totalItens}</span>
@@ -1059,127 +917,11 @@ function NovaVendaContent() {
                     <div className="pt-2 border-t border-neutral-200 mt-2">
                       <div className="flex items-center justify-between">
                         <span className="text-base font-medium text-neutral-900">Total:</span>
-                        <span className="text-lg font-semibold text-neutral-900">{formatarValor(total)}</span>
+                        <span className="text-lg font-semibold text-neutral-900">{formatarValor(subtotal)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                
-                {/* Botão para aplicar desconto geral */}
-                {!mostrarDescontoGeral ? (
-                  <button 
-                    type="button"
-                    onClick={() => setMostrarDescontoGeral(true)}
-                    disabled={itensVenda.length === 0}
-                    className="w-full mt-3 flex items-center justify-center space-x-2 py-2 border border-dashed border-emerald-300 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <PercentCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Aplicar desconto geral</span>
-                  </button>
-                ) : (
-                  <div className="mt-3 bg-emerald-50 rounded-lg p-4 border border-emerald-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center">
-                        <PercentCircle className="h-5 w-5 mr-2 text-emerald-600" />
-                        <span className="font-medium text-gray-800">Desconto Geral</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMostrarDescontoGeral(false);
-                          setDescontoGeral('');
-                        }}
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {/* Switch para tipo de desconto */}
-                      <label className="inline-flex items-center cursor-pointer">
-                        <span className={`mr-2 text-sm ${tipoDescontoGeral === 'value' ? 'font-semibold text-emerald-600' : 'text-gray-500'}`}>
-                          <DollarSign className="h-4 w-4 inline mr-0.5" />
-                          R$
-                        </span>
-                        <div className="relative">
-                          <input 
-                            type="checkbox" 
-                            value="" 
-                            className="sr-only peer"
-                            checked={tipoDescontoGeral === 'percentage'}
-                            onChange={() => setTipoDescontoGeral(
-                              tipoDescontoGeral === 'value' ? 'percentage' : 'value'
-                            )}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                        </div>
-                        <span className={`ml-2 text-sm ${tipoDescontoGeral === 'percentage' ? 'font-semibold text-emerald-600' : 'text-gray-500'}`}>
-                          <Percent className="h-4 w-4 inline mr-0.5" />
-                          %
-                        </span>
-                      </label>
-                      
-                      {/* Input para valor do desconto */}
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-gray-500">
-                            {tipoDescontoGeral === 'value' ? 'R$' : ''}
-                          </span>
-                        </div>
-                        <input
-                          type="text"
-                          value={descontoGeral}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9.,]/g, '');
-                            setDescontoGeral(value);
-                          }}
-                          placeholder={tipoDescontoGeral === 'percentage' ? '0' : '0,00'}
-                          className="w-full rounded-md border border-gray-300 py-2 pl-8 pr-10 focus:border-emerald-500 focus:ring focus:ring-emerald-200 focus:ring-opacity-50"
-                        />
-                        {tipoDescontoGeral === 'percentage' && (
-                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span className="text-gray-500">%</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Calcular e mostrar valor de desconto */}
-                      {descontoGeral && parseFloat(descontoGeral.replace(',', '.')) > 0 && (
-                        <div className="bg-white rounded-lg mt-2 p-3 shadow-sm">
-                          <div className="text-sm flex justify-between items-center">
-                            <span className="text-gray-600">Desconto aplicado:</span>
-                            <div className="flex flex-col items-end">
-                              <span className="font-medium text-red-500">
-                                -{formatarValor(calcularDescontoGeral())}
-                              </span>
-                              {tipoDescontoGeral === 'percentage' && (
-                                <span className="text-xs text-gray-500">
-                                  ({parseFloat(descontoGeral.replace(',', '.'))}%)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="mt-2 flex justify-between items-center font-medium text-emerald-700">
-                            <span>Novo total:</span>
-                            <span>{formatarValor(total - calcularDescontoGeral())}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Botão para aplicar o desconto */}
-                      <button
-                        type="button"
-                        onClick={aplicarDescontoGeral}
-                        disabled={!descontoGeral || parseFloat(descontoGeral.replace(',', '.')) <= 0}
-                        className="w-full py-2 mt-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Aplicar desconto aos itens
-                      </button>
-                    </div>
-                  </div>
-                )}
                 
                 <div>
                   <label htmlFor="observacoes" className="mb-1.5 block text-sm font-medium text-neutral-900">
