@@ -129,18 +129,6 @@ export default function DashboardLayout({ children, title = "Dashboard" }: Dashb
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Barra de pesquisa */}
-            <div className="relative hidden md:block">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-4 w-4 text-neutral-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Buscar..."
-                className="w-64 rounded-md border border-neutral-300 bg-white py-1.5 pl-10 pr-3 text-sm text-neutral-900 focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
-
             {/* Notificações */}
             <button className="relative rounded-full p-1.5 text-neutral-500 hover:bg-neutral-100">
               <Bell className="h-5 w-5" />
