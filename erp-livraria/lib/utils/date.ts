@@ -11,7 +11,26 @@ export function formatBrazilianDate(dateString?: string | null): string {
   if (!dateString) return '';
   
   try {
-    // Criar data a partir da string
+    // Primeiro, verificamos se é apenas uma data sem horário (YYYY-MM-DD)
+    if (dateString.length === 10 && dateString.includes('-')) {
+      // Adiciona meio-dia no horário de Brasília para garantir que 
+      // ao converter para UTC não mude o dia devido ao fuso horário
+      const [year, month, day] = dateString.split('-').map(Number);
+      
+      // Criar a data já com 12:00 no fuso horário de Brasília (UTC-3)
+      // O mês em JavaScript é indexado a partir de 0
+      const date = new Date(Date.UTC(year, month - 1, day, 15, 0, 0));
+      
+      // Formatar usando API do Intl, especificando o fuso de Brasília
+      return new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(date);
+    }
+    
+    // Para timestamps completos, usar o método padrão
     const date = new Date(dateString);
     
     // Verificar se a data é válida

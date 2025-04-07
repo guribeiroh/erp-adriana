@@ -69,22 +69,16 @@ function supabaseToTransacao(dados: TransacaoSupabase): Transacao {
     if (!dataStr) return undefined;
     
     try {
-      // Criar data considerando que o timestamp já está em UTC
-      // Ajustar para o fuso de Brasília (UTC-3)
-      // Obter o offset do fuso horário de Brasília em minutos (normalmente -180 minutos)
+      // Criar data a partir da string
       const data = new Date(dataStr);
-      const brasiliaOffset = -180; // UTC-3 em minutos
       
-      // Calcular a diferença entre o fuso local e o de Brasília
-      const localOffset = data.getTimezoneOffset();
+      // Ao converter para string ISO e extrair a data, UTC pode ficar um dia atrás para Brasília
+      // Vamos adicionar o offset do fuso horário antes de extrair apenas a data YYYY-MM-DD
+      // Para Brasília (UTC-3), adicionamos 3 horas para garantir que estamos no mesmo dia civil
+      const dataComOffset = new Date(data.getTime() + (3 * 60 * 60 * 1000));
       
-      // Ajustar a data considerando a diferença entre os fusos
-      // O ajuste deve levar em conta o fuso local do navegador e o fuso de Brasília
-      const offsetDiff = localOffset - brasiliaOffset;
-      const dataAjustada = new Date(data.getTime() + offsetDiff * 60000);
-      
-      // Retornar apenas a parte da data YYYY-MM-DD no fuso de Brasília
-      return dataAjustada.toISOString().split('T')[0];
+      // Extrair apenas a parte da data YYYY-MM-DD
+      return dataComOffset.toISOString().split('T')[0];
     } catch (error) {
       console.error(`Erro ao formatar data '${dataStr}':`, error);
       return dataStr.split('T')[0]; // Fallback: retornar apenas a parte da data
@@ -686,9 +680,27 @@ export async function updateTransacao(id: string, transacao: Partial<Omit<Transa
       // Função para ajustar a data considerando o fuso de Brasília
       const ajustarDataParaISO = (dataStr?: string): string | null => {
         if (!dataStr) return null;
-        const data = new Date(dataStr);
-        // Adicionar o fuso horário de Brasília (UTC-3)
-        return new Date(data.getTime() + (180 * 60000)).toISOString();
+        
+        try {
+          // Criar data a partir da string
+          const data = new Date(dataStr);
+          
+          // Para garantir que a data seja armazenada corretamente no fuso UTC
+          // mas corresponda ao dia civil em Brasília, vamos definir a hora para meio-dia
+          // em Brasília (15:00 UTC), garantindo que a data permaneça a mesma
+          const [ano, mes, dia] = dataStr.split('-').map(Number);
+          
+          // Criar data às 12:00 no fuso de Brasília (15:00 UTC)
+          // Mês em JavaScript é 0-indexado (0-11)
+          const dataAjustada = new Date(Date.UTC(ano, mes - 1, dia, 15, 0, 0));
+          
+          return dataAjustada.toISOString();
+        } catch (error) {
+          console.error(`Erro ao ajustar data '${dataStr}' para ISO:`, error);
+          
+          // Fallback: apenas adicionar o T e o Z para transformar em ISO
+          return `${dataStr}T12:00:00.000Z`;
+        }
       };
       
       // Mapear manualmente cada campo para garantir a conversão correta
