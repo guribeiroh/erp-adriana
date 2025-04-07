@@ -784,6 +784,7 @@ export default function NovaDespesaPage() {
             )}
           </button>
         </div>
+        </form>
       </div>
     </DashboardLayout>
   );
