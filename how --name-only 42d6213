@@ -1,0 +1,7 @@
+[33mcommit 42d62139732e4c9bce5a793bab269be7a7b4b9a6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature-configuracoes[m[33m, [m[1;31morigin/feature-configuracoes[m[33m)[m
+Author: guribeiroh <agenciatdx@gmail.com>
+Date:   Mon Apr 7 13:15:05 2025 -0300
+
+    Corrigido problema de data fixa em vendas para usar data atual de Brasília
+
+lib/services/pdvService.ts

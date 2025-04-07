@@ -80,33 +80,84 @@ export default function PDVPage() {
     setIsCustomerModalOpen(false);
   };
 
-  const handleConfirmPayment = async (method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer') => {
-    try {
-      if (authLoading) {
-        toast.error('Aguarde, verificando autenticação...');
-        return;
-      }
+  const handleConfirmPayment = async (paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer', generalDiscount: number = 0) => {
+    if (!user) {
+      toast.error('É necessário estar logado para finalizar a venda');
+      return;
+    }
 
-      if (!user) {
-        toast.error('Usuário não autenticado. Faça login novamente.');
-        return;
+    try {
+      setPaymentMethod(paymentMethod);
+      
+      // Aplicar desconto geral como desconto adicional no último item, se houver
+      if (generalDiscount > 0 && items.length > 0) {
+        console.log(`Aplicando desconto geral de ${generalDiscount} na venda`);
+        
+        // Vamos adicionar o desconto geral como uma observação 
+        // para manter registro dele em caso de necessidade futura
+        const notes = `Desconto geral aplicado: R$ ${generalDiscount.toFixed(2)}`;
+        
+        // Se houver apenas um item, aplicar todo o desconto a ele
+        if (items.length === 1) {
+          const item = items[0];
+          // Adicionar o desconto geral ao desconto específico do item
+          const totalItemDiscount = item.discount + generalDiscount;
+          // Garantir que o desconto não exceda o valor do item
+          const maxDiscount = item.book.selling_price * item.quantity;
+          const safeDiscount = Math.min(totalItemDiscount, maxDiscount);
+          
+          // Atualizar o desconto no item
+          updateDiscount(item.book.id, safeDiscount);
+        } else {
+          // Estratégia: distribuir o desconto entre os itens proporcionalmente
+          // ao valor de cada um
+          
+          // Calcular o valor total dos itens para distribuição proporcional
+          const itemsTotal = items.reduce((sum, item) => 
+            sum + (item.book.selling_price * item.quantity), 0);
+          
+          // Aplicar desconto proporcionalmente
+          let remainingDiscount = generalDiscount;
+          
+          // Aplicar aos itens, exceto o último
+          for (let i = 0; i < items.length - 1; i++) {
+            const item = items[i];
+            const itemTotal = item.book.selling_price * item.quantity;
+            const itemDiscountShare = (itemTotal / itemsTotal) * generalDiscount;
+            const roundedDiscount = Math.floor(itemDiscountShare * 100) / 100; // Arredondar para 2 casas
+            
+            // Adicionar ao desconto existente do item
+            const newDiscount = item.discount + roundedDiscount;
+            updateDiscount(item.book.id, newDiscount);
+            
+            remainingDiscount -= roundedDiscount;
+          }
+          
+          // Aplicar o restante ao último item
+          const lastItem = items[items.length - 1];
+          const newLastItemDiscount = lastItem.discount + remainingDiscount;
+          updateDiscount(lastItem.book.id, newLastItemDiscount);
+        }
       }
       
-      const saleId = await finalizeSale(
-        items,
-        customer?.id || null,
-        user.id, // Usando o ID do usuário do contexto de autenticação
-        method,
-        ''
-      );
-      
-      setCurrentSaleId(saleId);
-      setPaymentMethod(method);
-      setIsPaymentModalOpen(false);
-      setIsSaleSuccessModalOpen(true);
+      // Aguardar um momento para que os estados atualizem com os novos descontos
+      setTimeout(async () => {
+        // Chamar a função de finalização de venda com os itens atualizados
+        const saleId = await finalizeSale(
+          items,
+          customer?.id ?? null,
+          user?.id ?? 'anonymous',
+          paymentMethod,
+          customer ? `Cliente: ${customer.name}` : 'Venda balcão'
+        );
+        
+        setCurrentSaleId(saleId);
+        setIsPaymentModalOpen(false);
+        setIsSaleSuccessModalOpen(true);
+      }, 100);
     } catch (error) {
       console.error('Erro ao finalizar venda:', error);
-      toast.error('Erro ao finalizar venda. Tente novamente.');
+      toast.error('Ocorreu um erro ao finalizar a venda');
     }
   };
 
@@ -251,6 +302,7 @@ export default function PDVPage() {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
+        total={total}
         onConfirmPayment={handleConfirmPayment}
       />
 

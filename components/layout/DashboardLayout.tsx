@@ -19,8 +19,7 @@ import {
   Search,
   Package,
   User,
-  Settings,
-  FileText
+  Settings
 } from 'lucide-react';
 
 // Array de links do menu
@@ -31,7 +30,6 @@ const menuLinks = [
   { href: '/dashboard/estoque', label: 'Estoque', icon: BookOpen },
   { href: '/dashboard/produtos', label: 'Livros', icon: Package },
   { href: '/dashboard/financeiro', label: 'Financeiro', icon: DollarSign },
-  { href: '/dashboard/relatorios', label: 'Relatórios', icon: FileText },
   { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
