@@ -117,7 +117,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Cards com resumo */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard 
             title="Vendas Hoje" 
             value={formatCurrency(dashboardData?.salesTotal.today || 0)} 
@@ -125,15 +125,6 @@ export default function DashboardPage() {
             trend={formatTrend(dashboardData?.salesTotal.trend || 0)} 
             trendType={getTrendType(dashboardData?.salesTotal.trend || 0)}
             href="/dashboard/vendas"
-          />
-          <SummaryCard 
-            title="Lucro Hoje" 
-            value={formatCurrency(dashboardData?.salesProfit.today || 0)} 
-            icon={DollarSign} 
-            trend={formatTrend(dashboardData?.salesProfit.trend || 0)} 
-            trendType={getTrendType(dashboardData?.salesProfit.trend || 0)}
-            href="/dashboard/vendas"
-            isProfit={true}
           />
           <SummaryCard 
             title="Clientes Ativos" 

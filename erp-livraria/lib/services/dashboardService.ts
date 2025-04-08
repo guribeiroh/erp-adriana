@@ -143,21 +143,24 @@ async function getSalesSummary(): Promise<DashboardSummary['salesTotal']> {
       .from('sales')
       .select('total')
       .gte('created_at', todayStart.toISOString())
-      .lte('created_at', todayEnd.toISOString());
+      .lte('created_at', todayEnd.toISOString())
+      .eq('payment_status', 'paid');
 
     // Consulta de vendas do mês atual
     const { data: monthSales, error: monthError } = await supabase
       .from('sales')
       .select('total')
       .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString());
+      .lte('created_at', todayEnd.toISOString())
+      .eq('payment_status', 'paid');
 
     // Consulta de vendas do mês anterior
     const { data: lastMonthSales, error: lastMonthError } = await supabase
       .from('sales')
       .select('total')
       .gte('created_at', lastMonthStart.toISOString())
-      .lte('created_at', lastMonthEnd.toISOString());
+      .lte('created_at', lastMonthEnd.toISOString())
+      .eq('payment_status', 'paid');
 
     if (todayError || monthError || lastMonthError) {
       console.error('Erro ao consultar vendas:', { todayError, monthError, lastMonthError });
@@ -226,21 +229,24 @@ async function getProfitSummary(): Promise<DashboardSummary['salesProfit']> {
       .from('sales')
       .select('lucro')
       .gte('created_at', todayStart.toISOString())
-      .lte('created_at', todayEnd.toISOString());
+      .lte('created_at', todayEnd.toISOString())
+      .eq('payment_status', 'paid');
 
     // Consulta de lucros do mês atual
     const { data: monthSales, error: monthError } = await supabase
       .from('sales')
       .select('lucro')
       .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString());
+      .lte('created_at', todayEnd.toISOString())
+      .eq('payment_status', 'paid');
 
     // Consulta de lucros do mês anterior
     const { data: lastMonthSales, error: lastMonthError } = await supabase
       .from('sales')
       .select('lucro')
       .gte('created_at', lastMonthStart.toISOString())
-      .lte('created_at', lastMonthEnd.toISOString());
+      .lte('created_at', lastMonthEnd.toISOString())
+      .eq('payment_status', 'paid');
 
     if (todayError || monthError || lastMonthError) {
       console.error('Erro ao consultar lucros:', { todayError, monthError, lastMonthError });
