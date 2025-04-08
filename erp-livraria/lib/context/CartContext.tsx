@@ -5,6 +5,7 @@ export type CartItem = {
   book: Book;
   quantity: number;
   discount: number;
+  discountType: 'percentage' | 'fixed';
 };
 
 type CartContextType = {
@@ -13,7 +14,7 @@ type CartContextType = {
   addItem: (book: Book) => void;
   removeItem: (bookId: string) => void;
   updateQuantity: (bookId: string, quantity: number) => void;
-  updateDiscount: (bookId: string, discount: number) => void;
+  updateDiscount: (bookId: string, discount: number, discountType: 'percentage' | 'fixed') => void;
   clearCart: () => void;
   setCustomer: (customer: Customer | null) => void;
   subtotal: number;
@@ -33,7 +34,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Recalcular totais quando os itens mudarem
   useEffect(() => {
     const newSubtotal = items.reduce((sum, item) => sum + (item.book.selling_price * item.quantity), 0);
-    const newTotalDiscount = items.reduce((sum, item) => sum + item.discount, 0);
+    const newTotalDiscount = items.reduce((sum, item) => {
+      if (item.discountType === 'percentage') {
+        return sum + ((item.book.selling_price * item.quantity) * (item.discount / 100));
+      }
+      return sum + item.discount;
+    }, 0);
     const newTotal = newSubtotal - newTotalDiscount;
 
     setSubtotal(newSubtotal);
@@ -48,7 +54,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (existingItem) {
       updateQuantity(book.id, existingItem.quantity + 1);
     } else {
-      setItems([...items, { book, quantity: 1, discount: 0 }]);
+      setItems([...items, { book, quantity: 1, discount: 0, discountType: 'fixed' }]);
     }
   };
 
@@ -74,11 +80,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Atualizar desconto de um item
-  const updateDiscount = (bookId: string, discount: number) => {
+  const updateDiscount = (bookId: string, discount: number, discountType: 'percentage' | 'fixed') => {
     setItems(
       items.map(item => 
         item.book.id === bookId 
-          ? { ...item, discount } 
+          ? { ...item, discount, discountType } 
           : item
       )
     );

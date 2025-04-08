@@ -36,6 +36,9 @@ type ItemVenda = {
   precoUnitario: number;
   subtotal: number;
   discount: number;
+  tipoDesconto: 'percentual' | 'valor';
+  valorDesconto: number;
+  totalComDesconto: number;
 };
 
 type FormaPagamento = "cash" | "credit_card" | "debit_card" | "pix" | "transfer";
@@ -224,6 +227,8 @@ function NovaVendaContent() {
   
   // Calcular totais
   const subtotal = itensVenda.reduce((acc, item) => acc + item.subtotal, 0);
+  const totalDescontos = itensVenda.reduce((acc, item) => acc + item.valorDesconto, 0);
+  const totalComDescontos = itensVenda.reduce((acc, item) => acc + item.totalComDesconto, 0);
   const totalItens = itensVenda.reduce((acc, item) => acc + item.quantidade, 0);
   
   // Verificar autenticação ao carregar a página
@@ -349,7 +354,10 @@ function NovaVendaContent() {
         quantidade: 1,
         precoUnitario: bookData.selling_price,
         subtotal: bookData.selling_price,
-        discount: 0
+        discount: 0,
+        tipoDesconto: 'percentual',
+        valorDesconto: 0,
+        totalComDesconto: bookData.selling_price
       };
       
       setItensVenda([...itensVenda, novoItem]);
@@ -367,12 +375,74 @@ function NovaVendaContent() {
         if (item.produto.id === produtoId) {
           // Verificar se a quantidade não excede o estoque
           if (novaQuantidade <= item.produto.quantity && novaQuantidade > 0) {
+            const subtotal = item.precoUnitario * novaQuantidade;
+            let valorDesconto = 0;
+            
+            if (item.tipoDesconto === 'percentual') {
+              valorDesconto = (subtotal * item.discount) / 100;
+            } else {
+              valorDesconto = Math.min(item.discount, subtotal); // Não permitir desconto maior que o subtotal
+            }
+            
             return {
               ...item,
               quantidade: novaQuantidade,
-              subtotal: item.precoUnitario * novaQuantidade
+              subtotal: subtotal,
+              valorDesconto: valorDesconto,
+              totalComDesconto: subtotal - valorDesconto
             };
           }
+        }
+        return item;
+      })
+    );
+  };
+  
+  // Handler para atualizar tipo de desconto
+  const handleAtualizarTipoDesconto = (produtoId: number, novoTipo: 'percentual' | 'valor') => {
+    setItensVenda(itensAtuais => 
+      itensAtuais.map(item => {
+        if (item.produto.id === produtoId) {
+          const novoDesconto = novoTipo === 'percentual' ? 0 : 0; // Resetar desconto ao mudar tipo
+          const valorDesconto = 0;
+          
+          return {
+            ...item,
+            tipoDesconto: novoTipo,
+            discount: novoDesconto,
+            valorDesconto: valorDesconto,
+            totalComDesconto: item.subtotal
+          };
+        }
+        return item;
+      })
+    );
+  };
+  
+  // Handler para atualizar desconto
+  const handleAtualizarDesconto = (produtoId: number, novoDesconto: number) => {
+    setItensVenda(itensAtuais => 
+      itensAtuais.map(item => {
+        if (item.produto.id === produtoId) {
+          let valorDesconto = 0;
+          let descontoAjustado = novoDesconto;
+          
+          if (item.tipoDesconto === 'percentual') {
+            // Limitar percentual entre 0 e 100
+            descontoAjustado = Math.max(0, Math.min(100, novoDesconto));
+            valorDesconto = (item.subtotal * descontoAjustado) / 100;
+          } else {
+            // Limitar desconto em R$ ao valor total do item
+            descontoAjustado = Math.max(0, Math.min(item.subtotal, novoDesconto));
+            valorDesconto = descontoAjustado;
+          }
+          
+          return {
+            ...item,
+            discount: descontoAjustado,
+            valorDesconto: valorDesconto,
+            totalComDesconto: item.subtotal - valorDesconto
+          };
         }
         return item;
       })
@@ -667,6 +737,7 @@ function NovaVendaContent() {
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">Produto</th>
                         <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500">Quantidade</th>
                         <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500">Preço Unit.</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500">Desconto</th>
                         <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-neutral-500">Subtotal</th>
                         <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-neutral-500"></th>
                       </tr>
@@ -709,8 +780,47 @@ function NovaVendaContent() {
                           <td className="whitespace-nowrap px-4 py-3 text-center text-sm text-neutral-900">
                             {formatarValor(item.precoUnitario)}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-neutral-900">
-                            {formatarValor(item.subtotal)}
+                          <td className="whitespace-nowrap px-4 py-3 text-center text-sm">
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={item.tipoDesconto}
+                                  onChange={(e) => handleAtualizarTipoDesconto(item.produto.id, e.target.value as 'percentual' | 'valor')}
+                                  className="rounded border border-neutral-300 py-1 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                >
+                                  <option value="percentual">%</option>
+                                  <option value="valor">R$</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  value={item.discount}
+                                  onChange={(e) => handleAtualizarDesconto(item.produto.id, parseFloat(e.target.value) || 0)}
+                                  min="0"
+                                  max={item.tipoDesconto === 'percentual' ? 100 : item.subtotal}
+                                  step={item.tipoDesconto === 'percentual' ? 1 : 0.01}
+                                  className="w-20 rounded border border-neutral-300 py-1 text-center focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                />
+                              </div>
+                              {item.discount > 0 && (
+                                <p className="text-xs text-green-600">
+                                  {item.tipoDesconto === 'percentual' ? 
+                                    `${item.discount}% = -${formatarValor(item.valorDesconto)}` : 
+                                    `-${formatarValor(item.valorDesconto)}`
+                                  }
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
+                            {item.discount > 0 ? (
+                              <div>
+                                <span className="text-sm line-through text-neutral-500">{formatarValor(item.subtotal)}</span>
+                                <br />
+                                <span className="font-medium text-neutral-900">{formatarValor(item.totalComDesconto)}</span>
+                              </div>
+                            ) : (
+                              <span className="font-medium text-neutral-900">{formatarValor(item.subtotal)}</span>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
                             <button
@@ -729,8 +839,24 @@ function NovaVendaContent() {
                         <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-neutral-900">
                           Total: {totalItens} {totalItens === 1 ? 'item' : 'itens'}
                         </td>
-                        <td colSpan={3} className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-neutral-900">
-                          Total da venda: {formatarValor(subtotal)}
+                        <td colSpan={2}></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
+                          {totalDescontos > 0 && (
+                            <span className="text-green-600">
+                              Total descontos: -{formatarValor(totalDescontos)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-neutral-900">
+                          {totalDescontos > 0 ? (
+                            <div>
+                              <span className="text-sm line-through text-neutral-500">{formatarValor(subtotal)}</span>
+                              <br />
+                              <span className="text-base font-bold">{formatarValor(totalComDescontos)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-base font-bold">{formatarValor(subtotal)}</span>
+                          )}
                         </td>
                         <td></td>
                       </tr>
@@ -909,6 +1035,13 @@ function NovaVendaContent() {
                       <span className="font-medium text-neutral-900">{formatarValor(subtotal)}</span>
                     </div>
                     
+                    {totalDescontos > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-600">Descontos:</span>
+                        <span className="font-medium text-green-600">-{formatarValor(totalDescontos)}</span>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-between">
                       <span className="text-neutral-600">Itens:</span>
                       <span className="font-medium text-neutral-900">{totalItens}</span>
@@ -917,7 +1050,7 @@ function NovaVendaContent() {
                     <div className="pt-2 border-t border-neutral-200 mt-2">
                       <div className="flex items-center justify-between">
                         <span className="text-base font-medium text-neutral-900">Total:</span>
-                        <span className="text-lg font-semibold text-neutral-900">{formatarValor(subtotal)}</span>
+                        <span className="text-lg font-semibold text-neutral-900">{formatarValor(totalComDescontos)}</span>
                       </div>
                     </div>
                   </div>
