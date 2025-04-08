@@ -706,7 +706,7 @@ export async function fetchRecentSales(limit: number = 10): Promise<Sale[]> {
   try {
     const { data, error } = await supabase
       .from('sales')
-      .select('*')
+      .select('id, customer_id, user_id, total, payment_method, payment_status, notes, created_at, updated_at, lucro')
       .order('created_at', { ascending: false })
       .limit(limit);
 

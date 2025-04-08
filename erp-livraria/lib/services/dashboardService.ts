@@ -13,6 +13,11 @@ export interface DashboardSummary {
     month: number;
     trend: number; // percentual de aumento/diminuição em relação ao mês anterior
   };
+  salesProfit: {
+    today: number;
+    month: number;
+    trend: number; // percentual de aumento/diminuição em relação ao mês anterior
+  };
   customers: {
     total: number;
     active: number;
@@ -51,6 +56,11 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         month: 0,
         trend: 0
       },
+      salesProfit: {
+        today: 0,
+        month: 0,
+        trend: 0
+      },
       customers: {
         total: 0,
         active: 0,
@@ -65,8 +75,9 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       recentActivities: []
     };
 
-    // 1. Obter resumo de vendas
+    // 1. Obter resumo de vendas e lucro
     const salesSummary = await getSalesSummary();
+    const profitSummary = await getProfitSummary();
     
     // 2. Obter resumo de clientes
     const customerSummary = await getCustomerSummary();
@@ -79,6 +90,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
     return {
       salesTotal: salesSummary,
+      salesProfit: profitSummary,
       customers: customerSummary,
       inventory: inventorySummary,
       recentActivities: activities
@@ -88,6 +100,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     // Retornar dados vazios em caso de erro
     return {
       salesTotal: { today: 0, month: 0, trend: 0 },
+      salesProfit: { today: 0, month: 0, trend: 0 },
       customers: { total: 0, active: 0, trend: 0 },
       inventory: { totalBooks: 0, totalProducts: 0, lowStock: 0, trend: 0 },
       recentActivities: []
@@ -170,6 +183,89 @@ async function getSalesSummary(): Promise<DashboardSummary['salesTotal']> {
     };
   } catch (error) {
     console.error('Erro ao obter resumo de vendas:', error);
+    return {
+      today: 0,
+      month: 0,
+      trend: 0
+    };
+  }
+}
+
+/**
+ * Obtém resumo de lucros
+ */
+async function getProfitSummary(): Promise<DashboardSummary['salesProfit']> {
+  try {
+    if (!supabase) {
+      console.warn('Supabase não disponível, retornando dados simulados para lucros');
+      return {
+        today: 450.00,
+        month: 8250.50,
+        trend: 12
+      };
+    }
+
+    // Data de hoje (início e fim do dia)
+    const today = new Date();
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    // Data do início do mês atual
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    // Data do início do mês anterior
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    // Data do fim do mês anterior
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+
+    // Consulta de lucros de hoje
+    const { data: todaySales, error: todayError } = await supabase
+      .from('sales')
+      .select('lucro')
+      .gte('created_at', todayStart.toISOString())
+      .lte('created_at', todayEnd.toISOString());
+
+    // Consulta de lucros do mês atual
+    const { data: monthSales, error: monthError } = await supabase
+      .from('sales')
+      .select('lucro')
+      .gte('created_at', monthStart.toISOString())
+      .lte('created_at', todayEnd.toISOString());
+
+    // Consulta de lucros do mês anterior
+    const { data: lastMonthSales, error: lastMonthError } = await supabase
+      .from('sales')
+      .select('lucro')
+      .gte('created_at', lastMonthStart.toISOString())
+      .lte('created_at', lastMonthEnd.toISOString());
+
+    if (todayError || monthError || lastMonthError) {
+      console.error('Erro ao consultar lucros:', { todayError, monthError, lastMonthError });
+      throw new Error('Falha ao obter dados de lucros');
+    }
+
+    // Somar os lucros
+    const todayTotal = todaySales?.reduce((acc, sale) => acc + (sale.lucro || 0), 0) || 0;
+    const monthTotal = monthSales?.reduce((acc, sale) => acc + (sale.lucro || 0), 0) || 0;
+    const lastMonthTotal = lastMonthSales?.reduce((acc, sale) => acc + (sale.lucro || 0), 0) || 0;
+
+    // Calcular tendência (% de crescimento em relação ao mês anterior)
+    let trend = 0;
+    if (lastMonthTotal > 0) {
+      // Evitar divisão por zero
+      trend = Math.round(((monthTotal - lastMonthTotal) / lastMonthTotal) * 100);
+    }
+
+    return {
+      today: todayTotal,
+      month: monthTotal,
+      trend
+    };
+  } catch (error) {
+    console.error('Erro ao obter resumo de lucros:', error);
     return {
       today: 0,
       month: 0,

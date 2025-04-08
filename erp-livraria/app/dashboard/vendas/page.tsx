@@ -39,6 +39,7 @@ interface VendaCompleta extends Sale {
   };
   itens?: any[];
   vendedor?: string;
+  lucro?: number;
 }
 
 export default function VendasPage() {
@@ -57,6 +58,10 @@ export default function VendasPage() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [vendasPaginadas, setVendasPaginadas] = useState<VendaCompleta[]>([]);
+  
+  // Estados para totais
+  const [totalVendas, setTotalVendas] = useState(0);
+  const [totalLucro, setTotalLucro] = useState(0);
 
   // Carregar vendas ao montar o componente
   useEffect(() => {
@@ -112,11 +117,15 @@ export default function VendasPage() {
           .eq('id', venda.user_id)
           .single();
         
+        // Usar o lucro já armazenado no banco de dados
+        const lucroTotal = venda.lucro || 0;
+        
         return {
           ...venda,
           cliente: clienteData,
           itens: itens || [],
-          vendedor: usuario?.name || 'Vendedor desconhecido'
+          vendedor: usuario?.name || 'Vendedor desconhecido',
+          lucro: lucroTotal
         };
       }));
       
@@ -132,6 +141,11 @@ export default function VendasPage() {
   // Filtrar e ordenar vendas
   const vendasFiltradas = vendas
     .filter((venda) => {
+      // Desconsiderar vendas canceladas se estiver filtrando por status
+      if (statusSelecionado === "todos" && venda.payment_status === "canceled") {
+        return false;
+      }
+      
       // Filtrar por período
       if (periodoSelecionado === "hoje") {
         // Obter a data atual no formato YYYY-MM-DD no fuso de Brasília
@@ -188,10 +202,31 @@ export default function VendasPage() {
         return ordem === "asc" 
           ? a.total - b.total
           : b.total - a.total;
+      } else if (campo === "lucro") {
+        const lucroA = a.lucro || 0;
+        const lucroB = b.lucro || 0;
+        return ordem === "asc" 
+          ? lucroA - lucroB
+          : lucroB - lucroA;
       }
       
       return 0;
     });
+  
+  // Calcular totais sempre que as vendas filtradas mudarem
+  useEffect(() => {
+    // Calcular total de vendas e lucro excluindo as canceladas
+    const totalVendasCalculado = vendasFiltradas
+      .filter(venda => venda.payment_status !== 'canceled')
+      .reduce((sum, venda) => sum + venda.total, 0);
+      
+    const totalLucroCalculado = vendasFiltradas
+      .filter(venda => venda.payment_status !== 'canceled')
+      .reduce((sum, venda) => sum + (venda.lucro || 0), 0);
+    
+    setTotalVendas(totalVendasCalculado);
+    setTotalLucro(totalLucroCalculado);
+  }, [vendasFiltradas]);
   
   // Efeito para aplicar paginação e calcular total de páginas
   useEffect(() => {
@@ -364,6 +399,38 @@ export default function VendasPage() {
           </div>
         </div>
         
+        {/* Resumo de totais */}
+        {!loading && !error && vendasFiltradas.length > 0 && (
+          <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-neutral-500">Resumo de vendas filtradas</h3>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {vendasFiltradas.filter(v => v.payment_status !== 'canceled').length} venda(s) | 
+                  {vendasFiltradas.length > vendasFiltradas.filter(v => v.payment_status !== 'canceled').length && 
+                    ` ${vendasFiltradas.length - vendasFiltradas.filter(v => v.payment_status !== 'canceled').length} cancelada(s) |`}
+                  {metodoPagamentoSelecionado !== "todos" && ` Método: ${mapearMetodoPagamento(metodoPagamentoSelecionado)} |`}
+                  {statusSelecionado !== "todos" && ` Status: ${mapearStatus(statusSelecionado)}`}
+                </p>
+              </div>
+              <div className="flex gap-6">
+                <div>
+                  <span className="text-sm font-medium text-neutral-500">Total Vendas:</span>
+                  <div className="text-lg font-bold text-neutral-900">
+                    {formatarValor(totalVendas)}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-neutral-500">Total Lucro:</span>
+                  <div className="text-lg font-bold text-green-600">
+                    {formatarValor(totalLucro)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Visualização das vendas */}
         <div className="rounded-lg border border-neutral-200 bg-white shadow-sm">
           {loading ? (
@@ -426,6 +493,18 @@ export default function VendasPage() {
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </th>
+                    <th 
+                      className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-neutral-500"
+                      onClick={() => setOrdenacao({ 
+                        campo: "lucro", 
+                        ordem: ordenacao.campo === "lucro" && ordenacao.ordem === "asc" ? "desc" : "asc" 
+                      })}
+                    >
+                      <div className="flex items-center justify-end gap-1 cursor-pointer">
+                        Lucro
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </th>
                     <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-neutral-500">
                       Status
                     </th>
@@ -461,6 +540,9 @@ export default function VendasPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-medium text-neutral-900">
                         {formatarValor(venda.total)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-medium text-green-600">
+                        {formatarValor(venda.lucro || 0)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-center text-sm">
                         <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getStatusClasses(venda.payment_status)}`}>

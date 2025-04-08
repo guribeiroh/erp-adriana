@@ -64,10 +64,12 @@ export interface Sale {
   customer_id: string | null;
   user_id: string;
   total: number;
+  lucro: number;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'transfer';
   payment_status: 'paid' | 'pending' | 'canceled';
   notes: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface SaleItem {
