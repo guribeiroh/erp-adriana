@@ -303,24 +303,49 @@ async function getCustomerSummary(): Promise<DashboardSummary['customers']> {
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
 
-    const { data: activeSalesData, error: activeError } = await supabase
+    // Usar uma consulta mais eficiente para contar clientes ativos
+    const { data: activeCustomersData, error: activeError } = await supabase
       .from('sales')
       .select('customer_id')
       .gte('created_at', threeMonthsAgo.toISOString())
-      .not('customer_id', 'is', null);
+      .not('customer_id', 'is', null)
+      .eq('payment_status', 'paid') // Apenas vendas finalizadas
+      .order('customer_id');
 
     if (totalError || activeError) {
       console.error('Erro ao consultar clientes:', { totalError, activeError });
       throw new Error('Falha ao obter dados de clientes');
     }
 
-    // Contar clientes únicos que fizeram compras recentes
-    const activeCustomersSet = new Set(activeSalesData?.map(sale => sale.customer_id));
-    const activeCustomersCount = activeCustomersSet.size;
+    // Processar os dados para obter clientes únicos com compras recentes
+    const uniqueCustomerIds = Array.from(new Set(activeCustomersData?.map(sale => sale.customer_id)));
+    const activeCustomersCount = uniqueCustomerIds.length;
 
-    // Tendência é calculada como uma estimativa para exemplo
-    // Idealmente, compararíamos com o período anterior
-    const trend = 5; // Valor fixo para exemplo
+    // Cálculo da tendência (compara com o período anterior)
+    // Para calcular a tendência real, precisaríamos de dados dos 3 meses anteriores
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setDate(sixMonthsAgo.getDate() - 180);
+    
+    const { data: previousPeriodData, error: previousError } = await supabase
+      .from('sales')
+      .select('customer_id')
+      .gte('created_at', sixMonthsAgo.toISOString())
+      .lt('created_at', threeMonthsAgo.toISOString())
+      .not('customer_id', 'is', null)
+      .eq('payment_status', 'paid');
+    
+    if (previousError) {
+      console.error('Erro ao consultar período anterior:', previousError);
+    }
+    
+    const previousUniqueCustomers = previousPeriodData 
+      ? Array.from(new Set(previousPeriodData.map(sale => sale.customer_id))).length
+      : 0;
+    
+    let trend = 0;
+    if (previousUniqueCustomers > 0) {
+      trend = Math.round(((activeCustomersCount - previousUniqueCustomers) / previousUniqueCustomers) * 100);
+    }
 
     return {
       total: totalCustomers || 0,
