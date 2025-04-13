@@ -22,6 +22,7 @@ export interface Customer {
   social_name?: string;
   address_complement?: string;
   instagram?: string;
+  birthday?: string;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;

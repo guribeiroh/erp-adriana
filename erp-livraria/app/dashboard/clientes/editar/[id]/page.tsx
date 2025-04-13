@@ -33,6 +33,7 @@ type FormData = {
   cep: string;
   complemento: string;
   observacoes: string;
+  aniversario: string;
   status: string;
 };
 
@@ -61,6 +62,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
     cep: '',
     complemento: '',
     observacoes: '',
+    aniversario: '',
     status: 'ativo'
   });
   
@@ -106,6 +108,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
             cep: customer.zip || '',
             complemento: customer.address_complement || '',
             observacoes: customer.notes || '',
+            aniversario: customer.birthday || '',
             status: customer.status === 'active' ? 'ativo' : 'inativo'
           });
         } else {
@@ -266,6 +269,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
           zip: formData.cep,
           address_complement: formData.complemento,
           notes: formData.observacoes,
+          birthday: formData.aniversario || undefined,
           customer_type: tipoCliente === 'pessoaFisica' ? 'pf' : 'pj',
           status: formData.status === 'ativo' ? 'active' : 'inactive'
         };
@@ -472,14 +476,39 @@ export default function EditarClientePage({ params }: { params: { id: string } }
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="email@exemplo.com"
+                        placeholder="Email do cliente"
                         className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
-                          errors.email ? 'border-red-300 bg-red-50' : 'border-neutral-300 bg-white'
+                          errors.email ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
                         }`}
                       />
                     </div>
                     {errors.email && (
                       <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
+                    )}
+                  </div>
+                  
+                  {/* Aniversário */}
+                  <div>
+                    <label htmlFor="aniversario" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                      Aniversário
+                    </label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <CalendarClock className="h-4 w-4 text-neutral-400" />
+                      </div>
+                      <input
+                        type="date"
+                        id="aniversario"
+                        name="aniversario"
+                        value={formData.aniversario}
+                        onChange={handleChange}
+                        className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                          errors.aniversario ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
+                        }`}
+                      />
+                    </div>
+                    {errors.aniversario && (
+                      <p className="mt-1.5 text-sm text-red-600">{errors.aniversario}</p>
                     )}
                   </div>
                   

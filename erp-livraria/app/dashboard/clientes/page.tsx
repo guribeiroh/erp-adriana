@@ -22,7 +22,8 @@ import {
   UserX,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Gift
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Customer } from "@/models/database.types";
@@ -227,6 +228,13 @@ export default function ClientesPage() {
           </div>
           
           <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/dashboard/clientes/sorteio"
+              className="flex items-center justify-center gap-2 rounded-lg border border-primary-300 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 shadow-sm hover:bg-primary-100"
+            >
+              <Gift className="h-4 w-4" />
+              Sorteio de Aniversariantes
+            </Link>
             <Link
               href="/dashboard/clientes/novo"
               className="flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700"

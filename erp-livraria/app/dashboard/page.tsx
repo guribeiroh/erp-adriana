@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { BookOpen, DollarSign, ShoppingCart, Users, ArrowRight, Clock, ArrowUpRight, ArrowDownRight, Plus, Calendar, Package } from "lucide-react";
+import { BookOpen, DollarSign, ShoppingCart, Users, ArrowRight, Clock, ArrowUpRight, ArrowDownRight, Plus, Calendar, Package, Gift } from "lucide-react";
 import Link from "next/link";
 import PDVButton from "@/components/pdv/PDVButton";
 import { DashboardSummary, ActivityItem, getDashboardSummary } from "@/lib/services/dashboardService";
@@ -203,6 +203,12 @@ export default function DashboardPage() {
                 href="/dashboard/produtos/novo"
                 icon={Package}
                 iconColor="bg-indigo-100 text-indigo-600"
+              />
+              <QuickAccessButton 
+                label="Sorteio" 
+                href="/dashboard/clientes/sorteio"
+                icon={Gift}
+                iconColor="bg-purple-100 text-purple-600"
               />
             </div>
 

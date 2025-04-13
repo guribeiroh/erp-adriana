@@ -303,6 +303,16 @@ export default function DetalheClientePage() {
                   <h3 className="text-sm font-medium text-neutral-500">Data de Cadastro</h3>
                   <p className="mt-1 text-neutral-900">{formatarData(cliente?.created_at)}</p>
                 </div>
+                
+                {cliente?.birthday && (
+                  <div>
+                    <h3 className="text-sm font-medium text-neutral-500">Data de Aniversário</h3>
+                    <p className="mt-1 flex items-center text-neutral-900">
+                      <Calendar className="mr-1.5 h-4 w-4 text-neutral-500" />
+                      {formatarData(cliente.birthday)}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             

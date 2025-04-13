@@ -40,6 +40,7 @@ export default function EditarClientePage() {
     city: "",
     state: "",
     zip: "",
+    birthday: "",
     notes: ""
   });
   
@@ -87,6 +88,7 @@ export default function EditarClientePage() {
           city: data.city || "",
           state: data.state || "",
           zip: data.zip || "",
+          birthday: data.birthday || "",
           notes: data.notes || ""
         });
       } catch (error) {
@@ -245,6 +247,7 @@ export default function EditarClientePage() {
           city: formData.city,
           state: formData.state,
           zip: formData.zip,
+          birthday: formData.birthday,
           notes: formData.notes,
           updated_at: new Date().toISOString()
         })
@@ -358,6 +361,21 @@ export default function EditarClientePage() {
                   placeholder="email@exemplo.com"
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              </div>
+              
+              <div>
+                <label htmlFor="birthday" className="block text-sm font-medium text-neutral-700 mb-1">
+                  Data de Aniversário
+                </label>
+                <input
+                  type="date"
+                  id="birthday"
+                  name="birthday"
+                  value={formData.birthday}
+                  onChange={handleChange}
+                  className={`w-full rounded-md border ${errors.birthday ? 'border-red-300' : 'border-neutral-300'} px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500`}
+                />
+                {errors.birthday && <p className="mt-1 text-sm text-red-600">{errors.birthday}</p>}
               </div>
               
               <div>

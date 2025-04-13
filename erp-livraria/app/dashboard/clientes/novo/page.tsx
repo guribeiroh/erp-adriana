@@ -45,6 +45,7 @@ export default function NovoClientePage() {
     cep: "",
     complemento: "",
     observacoes: "",
+    aniversario: "",
     status: "ativo"
   });
   
@@ -244,6 +245,7 @@ export default function NovoClientePage() {
           zip: formData.cep,
           address_complement: formData.complemento,
           notes: formData.observacoes,
+          birthday: formData.aniversario ? formData.aniversario : undefined,
           customer_type: tipoCliente === "pessoaFisica" ? "pf" : "pj",
           cpf: tipoCliente === "pessoaFisica" ? formData.cpfCnpj.replace(/\D/g, "") : undefined,
           cnpj: tipoCliente === "pessoaJuridica" ? formData.cpfCnpj.replace(/\D/g, "") : undefined,
@@ -403,7 +405,7 @@ export default function NovoClientePage() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="email@exemplo.com"
+                    placeholder="Email do cliente"
                     className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
                       errors.email ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
                     }`}
@@ -411,6 +413,31 @@ export default function NovoClientePage() {
                 </div>
                 {errors.email && (
                   <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
+                )}
+              </div>
+              
+              {/* Aniversário */}
+              <div>
+                <label htmlFor="aniversario" className="mb-1.5 block text-sm font-medium text-neutral-900">
+                  Aniversário
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <CalendarClock className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="date"
+                    id="aniversario"
+                    name="aniversario"
+                    value={formData.aniversario}
+                    onChange={handleChange}
+                    className={`w-full rounded-lg border py-2.5 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 ${
+                      errors.aniversario ? "border-red-300 bg-red-50" : "border-neutral-300 bg-white"
+                    }`}
+                  />
+                </div>
+                {errors.aniversario && (
+                  <p className="mt-1.5 text-sm text-red-600">{errors.aniversario}</p>
                 )}
               </div>
               
