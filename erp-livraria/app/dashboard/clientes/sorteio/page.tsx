@@ -15,6 +15,9 @@ import {
   RefreshCw,
   AlertTriangle,
   PartyPopper,
+  Eye,
+  EyeOff,
+  Phone
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Customer } from "@/models/database.types";
@@ -36,6 +39,7 @@ export default function SorteioAniversariantesPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [historico, setHistorico] = useState<Customer[]>([]);
   const [realizandoSorteio, setRealizandoSorteio] = useState(false);
+  const [mostraTelefone, setMostraTelefone] = useState(false);
 
   // Carregar clientes do Supabase
   useEffect(() => {
@@ -354,9 +358,23 @@ export default function SorteioAniversariantesPage() {
                         <p className="text-primary-600">
                           {clienteSorteado.email && `Email: ${clienteSorteado.email}`}
                         </p>
-                        <p className="text-primary-600">
-                          {clienteSorteado.phone && `Telefone: ${clienteSorteado.phone}`}
-                        </p>
+                        {clienteSorteado.phone && (
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <Phone className="h-4 w-4 text-primary-600" />
+                              <span className="text-primary-600">
+                                {mostraTelefone ? clienteSorteado.phone : "•••••-••••"}
+                              </span>
+                            </div>
+                            <button 
+                              onClick={() => setMostraTelefone(!mostraTelefone)}
+                              className="p-1 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-primary-600 transition-colors"
+                              title={mostraTelefone ? "Ocultar telefone" : "Mostrar telefone"}
+                            >
+                              {mostraTelefone ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
